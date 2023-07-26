@@ -1,5 +1,5 @@
 
-naive_cv <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, alpha = .1,
+naive_cv_m <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, alpha = .1,
                      trans = list(identity), funcs_params = NULL, fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
@@ -44,12 +44,12 @@ naive_cv <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, alpha = .1,
 
 # nested CV
 
-nested_cv <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  alpha = .1, bias_reps = NA,
+nested_cv_m <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  alpha = .1, bias_reps = NA,
                       funcs_params = NULL, n_cores = 1, verbose = F) {
   #estimate time required
   if(verbose) {
     t1 <- Sys.time()
-    temp <- nested_cv_helper(X, Y, Treat, range.tau, funcs, n_folds,
+    temp <- nested_cv_helper_m(X, Y, Treat, range.tau, funcs, n_folds,
                              funcs_params = funcs_params)
     t2 <- Sys.time()
     print(paste0("Estimated time required: ", (t2 - t1) * reps))
@@ -61,10 +61,10 @@ nested_cv <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  a
   ho_errs <- c()
   tau <- c()
   if(n_cores == 1){
-    raw <- lapply(1:reps, function(i){nested_cv_helper(X, Y, Treat, range.tau,funcs, n_folds,
+    raw <- lapply(1:reps, function(i){nested_cv_helper_m(X, Y, Treat, range.tau,funcs, n_folds,
                                                        funcs_params = funcs_params)})
   } else {
-    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper(X, Y, Treat, range.tau, funcs, n_folds,
+    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper_m(X, Y, Treat, range.tau, funcs, n_folds,
                                                                    funcs_params = funcs_params)},
                               mc.cores = n_cores)
   }
@@ -96,7 +96,7 @@ nested_cv <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  a
   }
   else {
     for(i in 1:bias_reps) {
-      temp <- naive_cv(X, Y, Treat, range.tau, funcs, n_folds, funcs_params = funcs_params)
+      temp <- naive_cv_m(X, Y, Treat, range.tau, funcs, n_folds, funcs_params = funcs_params)
       cv_means <- c(cv_means, temp$err_hat)
     }
     
@@ -114,7 +114,7 @@ nested_cv <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  a
        "running_sd_infl" = infl_est2)
 }
 
-nested_cv_helper <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, funcs_params = NULL) {
+nested_cv_helper_m <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, funcs_params = NULL) {
   min_ho_errors <- NULL
   fold_id <- 1:nrow(X) %% n_folds + 1
   fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
