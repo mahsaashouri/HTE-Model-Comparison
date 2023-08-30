@@ -43,7 +43,7 @@ naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = .1,
   gp_errors <- c()
   for(k in 1:n_folds) {
     fit <- funcs$fitter(X[fold_id !=k, ], Y[fold_id != k], funcs_params = funcs_params)
-    y_hat <- funcs$predictor(fit, as.matrix(X[fold_id == k, ]), funcs_params = funcs_params)
+    y_hat <- funcs$predictor(fit, X[fold_id == k, ], funcs_params = funcs_params)
     error_k <- funcs$loss(y_hat, Y[fold_id == k], funcs_params = funcs_params)
     errors <- c(errors, error_k)
     
@@ -196,8 +196,8 @@ nested_cv_helper <- function(X, Y, funcs, n_folds = 10, funcs_params = NULL) {
   for(f1 in 1:(n_folds - 1)) {
     for(f2 in (f1+1):n_folds) {
       test_idx <- c(which(fold_id == f1), which(fold_id == f2))
-      fit <- funcs$fitter(as.matrix(X[-test_idx, ]), Y[-test_idx], funcs_params = funcs_params)
-      preds <- funcs$predictor(fit, as.matrix(X), funcs_params = funcs_params)
+      fit <- funcs$fitter(X[-test_idx, ], Y[-test_idx], funcs_params = funcs_params)
+      preds <- funcs$predictor(fit, X, funcs_params = funcs_params)
       ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], Y[fold_id == f1], funcs_params = funcs_params)
       ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], Y[fold_id == f2], funcs_params = funcs_params)
     }
@@ -207,8 +207,8 @@ nested_cv_helper <- function(X, Y, funcs, n_folds = 10, funcs_params = NULL) {
   out_mat <- matrix(0, n_folds, 2)
   for(f1 in 1:(n_folds)) {
     test_idx <- which(fold_id == f1)
-    fit <- funcs$fitter(as.matrix(X[-test_idx, ]), Y[-test_idx], funcs_params = funcs_params)
-    preds <- funcs$predictor(fit, as.matrix(X[test_idx, ]), funcs_params = funcs_params)
+    fit <- funcs$fitter(X[-test_idx, ], Y[-test_idx], funcs_params = funcs_params)
+    preds <- funcs$predictor(fit, X[test_idx, ], funcs_params = funcs_params)
     e_out <- funcs$loss(preds, Y[test_idx])
     
     #loop over other folds

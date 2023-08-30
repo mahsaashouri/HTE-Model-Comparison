@@ -32,6 +32,7 @@ nested_cv_reps <- 300 #average over many random splits
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
 
+set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
 test_idx <- setdiff(1:nrow(DATA), train_idx)
 
@@ -102,6 +103,7 @@ nested_cv_reps <- 300 #average over many random splits
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
 
+set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
 test_idx <- setdiff(1:nrow(DATA), train_idx)
 
