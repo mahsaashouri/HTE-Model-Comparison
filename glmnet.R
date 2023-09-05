@@ -3,14 +3,14 @@ misclass_loss <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
   } 
 
-fitter_glmnet_logistic <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
+fitter_glmnet <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
   fit <- glmnet(X[idx, ], Y[idx]-(tau*Treat[idx]), family = "gaussian", lambda = funcs_params$lambdas) #assumes lambda is in global env
   
   fit
 }
 
-predictor_glmnet_logistic <- function(fit, X_new, funcs_params = NA) {
+predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
   beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
   a0_hat <- fit$a0[funcs_params$best_lam]
   preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
@@ -18,8 +18,8 @@ predictor_glmnet_logistic <- function(fit, X_new, funcs_params = NA) {
   preds
 } 
 
-gaussian_lasso_funs <- list(fitter = fitter_glmnet_logistic,
-                            predictor = predictor_glmnet_logistic,
+gaussian_lasso_funs <- list(fitter = fitter_glmnet,
+                            predictor = predictor_glmnet,
                             loss = misclass_loss,
                             name = "gaussian_lasso")
 
@@ -74,14 +74,14 @@ misclass_loss <- function(y1, y2, t,  funcs_params = NA) {
   (y1 - y2)^2
 } 
 
-fitter_glmnet_logistic <- function(X, Y,  idx = NA, funcs_params = NA) {
+fitter_glmnet <- function(X, Y,  idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
   fit <- glmnet(X[idx, ], Y[idx], family = "gaussian", lambda = funcs_params$lambdas) #assumes lambda is in global env
   
   fit
 }
 
-predictor_glmnet_logistic <- function(fit, X_new, funcs_params = NA) {
+predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
   beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
   a0_hat <- fit$a0[funcs_params$best_lam]
   preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
@@ -89,8 +89,8 @@ predictor_glmnet_logistic <- function(fit, X_new, funcs_params = NA) {
   preds
 } 
 
-gaussian_lasso_funs <- list(fitter = fitter_glmnet_logistic,
-                            predictor = predictor_glmnet_logistic,
+gaussian_lasso_funs <- list(fitter = fitter_glmnet,
+                            predictor = predictor_glmnet,
                             loss = misclass_loss,
                             name = "gaussian_lasso")
 
