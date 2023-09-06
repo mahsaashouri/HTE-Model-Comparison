@@ -33,6 +33,16 @@ nested_cv_reps <- 300 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
+cor_matrix <- cor(DATA)
+cor_with_output <- cor_matrix[, 1]
+cor_with_output[1] <- 0  # Set the correlation with output to 0
+sorted_correlations <- sort(abs(cor_with_output), decreasing = TRUE)
+top_10_correlations <- sorted_correlations[1:10]
+top_10_predictors <- names(top_10_correlations)
+# Subset your data to keep only the top 10 predictor columns
+selected_data <- DATA[, top_10_predictors]
+output <- DATA[,c('iqsb.36', 'treat')]
+DATA.cor <- bind_cols(output, selected_data)
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
@@ -94,6 +104,16 @@ nested_cv_reps <- 300 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
+cor_matrix <- cor(DATA)
+cor_with_output <- cor_matrix[, 1]
+cor_with_output[1] <- 0  # Set the correlation with output to 0
+sorted_correlations <- sort(abs(cor_with_output), decreasing = TRUE)
+top_10_correlations <- sorted_correlations[1:10]
+top_10_predictors <- names(top_10_correlations)
+# Subset your data to keep only the top 10 predictor columns
+selected_data <- DATA[, top_10_predictors]
+output <- DATA[,c('iqsb.36')]
+DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
