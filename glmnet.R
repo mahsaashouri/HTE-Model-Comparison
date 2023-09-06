@@ -11,9 +11,10 @@ fitter_glmnet <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
 }
 
 predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
-  beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
-  a0_hat <- fit$a0[funcs_params$best_lam]
-  preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
+  #beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
+  #a0_hat <- fit$a0[funcs_params$best_lam]
+  #preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
+  preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
   
   preds
 } 
@@ -80,7 +81,7 @@ nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), t
 #######################
 ### Comparison 
 #######################
-misclass_loss <- function(y1, y2, t,  funcs_params = NA) {
+misclass_loss <- function(y1, y2, funcs_params = NA) {
   (y1 - y2)^2
 } 
 
@@ -92,9 +93,11 @@ fitter_glmnet <- function(X, Y,  idx = NA, funcs_params = NA) {
 }
 
 predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
-  beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
-  a0_hat <- fit$a0[funcs_params$best_lam]
-  preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
+  #beta_hat <- fit$beta[, funcs_params$best_lam] #assumes best_lam is in global env
+  #a0_hat <- fit$a0[funcs_params$best_lam]
+  #preds <- (as.matrix(X_new) %*% beta_hat + a0_hat > 0)
+  
+  preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
   
   preds
 } 
