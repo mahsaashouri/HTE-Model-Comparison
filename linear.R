@@ -42,8 +42,15 @@ top_10_correlations <- sorted_correlations[1:10]
 top_10_predictors <- names(top_10_correlations)
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, top_10_predictors]
+
 output <- DATA[,c('iqsb.36', 'treat')]
-DATA.cor <- bind_cols(output, selected_data)
+selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+for(k in 1:10){
+  selected_data.T[,k] <- selected_data[,k]*output$treat
+}
+colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
+
+DATA.cor <- bind_cols(output, selected_data, selected_data.T)
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
@@ -115,7 +122,15 @@ top_10_correlations <- sorted_correlations[1:10]
 top_10_predictors <- names(top_10_correlations)
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, top_10_predictors]
-output <- DATA[,c('iqsb.36')]
+
+output <- DATA[, c('iqsb.36', 'treat')]
+selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+for(k in 1:10){
+  selected_data.T[,k] <- selected_data[,k]*output$treat
+}
+colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
+
+DATA.cor <- bind_cols(output, selected_data, selected_data.T)
 DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 set.seed(123)
