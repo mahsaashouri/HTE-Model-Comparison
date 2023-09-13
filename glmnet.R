@@ -40,8 +40,15 @@ top_10_correlations <- sorted_correlations[1:10]
 top_10_predictors <- names(top_10_correlations)
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, top_10_predictors]
+
 output <- DATA[,c('iqsb.36', 'treat')]
-DATA.cor <- bind_cols(output, selected_data)
+selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+for(k in 1:10){
+  selected_data.T[,k] <- selected_data[,k]*output$treat
+}
+colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
+
+DATA.cor <- bind_cols(output, selected_data, selected_data.T)
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
@@ -124,30 +131,29 @@ top_10_correlations <- sorted_correlations[1:10]
 top_10_predictors <- names(top_10_correlations)
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, top_10_predictors]
-output <- DATA[,c('iqsb.36')]
+
+output <- DATA[, c('iqsb.36', 'treat')]
+selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+for(k in 1:10){
+  selected_data.T[,k] <- selected_data[,k]*output$treat
+}
+colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
 DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA), train_idx)
+train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
+test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
 
+# Create training and test sets using the selected index numbers
+Y <- DATA.cor$iqsb.36
+DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
+DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-Y <- DATA$iqsb.36
-treat <- DATA$treat
-DATA <- DATA[ , !(names(DATA) %in% c('iqsb.36', 'treat'))]
-Xtrt <- matrix(NA, ncol = ncol(DATA), nrow = nrow(DATA))
-for(k in 1:ncol(DATA)){
-  Xtrt[,k] <- treat*DATA[,k]
-}
-Xtrt <- model.matrix(Y~.-1, data = as.data.frame(Xtrt))
-Xfull <- cbind.data.frame(DATA, treat, Xtrt)
-
-train.set <- Xfull[train_idx, ]
+train.set <- DATA.cor[train_idx, ]
 Y.train <- Y[train_idx]
-Treat.train <- treat[train_idx]
-test.set <- Xfull[test_idx, ]
+test.set <- DATA.cor[test_idx, ]
 Y.test <-  Y[test_idx]
-Treat.test <- treat[test_idx]
+
 n <- nrow(train.set) #number of observations
 p <- ncol(train.set) #number of features
 k <- 4 #number of nonzero coefficients
