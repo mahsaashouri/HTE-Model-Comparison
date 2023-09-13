@@ -53,19 +53,19 @@ DATA.cor <- bind_cols(output, selected_data, selected_data.T)
 
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA), train_idx)
+train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
+test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
 
 # Create training and test sets using the selected index numbers
-Y <- DATA$iqsb.36
-treat <- DATA$treat
-DATA <- DATA[ , !(names(DATA) %in% c('iqsb.36', 'treat'))]
-DATA <- model.matrix(Y~.-1, data = DATA)
+Y <- DATA.cor$iqsb.36
+treat <- DATA.cor$treat
+DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36', 'treat'))]
+DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-train.set <- DATA[train_idx, ]
+train.set <- DATA.cor[train_idx, ]
 Y.train <- Y[train_idx]
 Treat.train <- treat[train_idx]
-test.set <- DATA[test_idx, ]
+test.set <- DATA.cor[test_idx, ]
 Y.test <-  Y[test_idx]
 Treat.test <- treat[test_idx]
 
@@ -133,17 +133,17 @@ DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA), train_idx)
+train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
+test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
 
 # Create training and test sets using the selected index numbers
-Y <- DATA$iqsb.36
-DATA <- DATA[ , !(names(DATA) %in% c('iqsb.36'))]
-DATA <- model.matrix(Y~.-1, data = DATA)
+Y <- DATA.cor$iqsb.36
+DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
+DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-train.set <- DATA[train_idx, ]
+train.set <- DATA.cor[train_idx, ]
 Y.train <- Y[train_idx]
-test.set <- DATA[test_idx, ]
+test.set <- DATA.cor[test_idx, ]
 Y.test <-  Y[test_idx]
 
 
