@@ -2,12 +2,10 @@
 
 library(mboost)
 
-# Function for squared loss
 squared_loss <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 }
 
-# Function for fitting linear regression model
 fitter_glmboost <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if (sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
@@ -16,12 +14,10 @@ fitter_glmboost <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   fit
 }
 
-# Function for making predictions using linear regression model
 predictor_glmboost <- function(fit, X_new, funcs_params = NA) {
   as.numeric(predict(fit, newdata = as.matrix(X_new)))
 }
 
-# Linear regression functions
 glmboost_funs <- list(fitter = fitter_glmboost,
                       predictor = predictor_glmboost,
                       loss = squared_loss,
@@ -81,12 +77,10 @@ nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), t
 ######################
 library(mboost)
 
-# Function for squared loss
 squared_loss <- function(y1, y2, funcs_params = NA) {
   (y1 - y2)^2
 }
 
-# Function for fitting linear regression model
 fitter_glmboost <- function(X, Y, idx = NA, funcs_params = NA) {
   if (sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
@@ -95,12 +89,10 @@ fitter_glmboost <- function(X, Y, idx = NA, funcs_params = NA) {
   fit
 }
 
-# Function for making predictions using linear regression model
 predictor_glmboost <- function(fit, X_new, funcs_params = NA) {
  as.numeric(predict(fit, newdata = as.matrix(X_new)))
 }
 
-# Linear regression functions
 glmboost_funs <- list(fitter = fitter_glmboost,
                    predictor = predictor_glmboost,
                    loss = squared_loss,
