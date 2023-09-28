@@ -84,14 +84,14 @@ glmboost_funs <- list(fitter = fitter_glmboost,
                       name = "glmboost")
 
 ## glmnet
-
+library(glmnet)
 misclass_loss <- function(y1, y2, funcs_params = NA) {
   (y1 - y2)^2
 } 
 
 fitter_glmnet <- function(X, Y,  idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
-  fit <- glmnet(X[idx, ], Y[idx], family = "gaussian", lambda = funcs_params$lambdas) 
+  fit <- glmnet(X[idx, ], Y[idx], family = "gaussian", nlambda = funcs_params$lambdas) 
   
   fit
 }
@@ -139,7 +139,7 @@ p <- ncol(train.set) #number of features
 k <- 4 #number of nonzero coefficients
 alpha <- .1 #nominal error rate, total across both tails.
 
-library(glmnet)
+
 fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
 lambdas <- fit$lambda
 best_lam <- match(fit$lambda.1se, lambdas) 
@@ -203,7 +203,7 @@ glmboost_funs <- list(fitter = fitter_glmboost,
                       loss = squared_loss,
                       name = "glmboost")
 ## glmnet
-
+library(glmnet)
 misclass_loss <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 } 
@@ -264,7 +264,7 @@ p <- ncol(train.set) #number of features
 k <- 4 #number of nonzero coefficients
 alpha <- .1 #nominal error rate, total across both tails.
 
-library(glmnet)
+
 #Fit one model to find a good lambda. This lambda will be fixed in future simulations.
 fit <- cv.glmnet(train.set, Y.train, Treat.train, family = "gaussian")
 lambdas <- fit$lambda
