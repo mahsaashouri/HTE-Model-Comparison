@@ -97,8 +97,10 @@ fitter_glmnet <- function(X, Y,  idx = NA, funcs_params = NA) {
 }
 
 predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
-  preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
-  
+  #preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
+  beta_hat <- fit$beta[, funcs_params$best_lam] 
+  a0_hat <- fit$a0[funcs_params$best_lam]
+  preds <- (as.matrix(X_new) %*% beta_hat + a0_hat)
   preds
 } 
 
@@ -216,8 +218,10 @@ fitter_glmnet <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
 }
 
 predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
-  preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
-  
+  #preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
+  beta_hat <- fit$beta[, funcs_params$best_lam] 
+  a0_hat <- fit$a0[funcs_params$best_lam]
+  preds <- (as.matrix(X_new) %*% beta_hat + a0_hat)
   preds
 } 
 
