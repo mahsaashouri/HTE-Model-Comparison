@@ -91,7 +91,7 @@ misclass_loss <- function(y1, y2, funcs_params = NA) {
 
 fitter_glmnet <- function(X, Y,  idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
-  fit <- glmnet(X[idx, ], Y[idx], family = "gaussian", nlambda = funcs_params$lambdas) 
+  fit <- glmnet(X[idx, ], Y[idx], family = "gaussian") 
   
   fit
 }
@@ -210,7 +210,7 @@ misclass_loss <- function(y1, y2, t, tau, funcs_params = NA) {
 
 fitter_glmnet <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
-  fit <- glmnet(X[idx, ], Y[idx]-(tau*Treat[idx]), family = "gaussian", lambda = funcs_params$lambdas) 
+  fit <- glmnet(X[idx, ], Y[idx]-(tau*Treat[idx]), family = "gaussian") 
   
   fit
 }
