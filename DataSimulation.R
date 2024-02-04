@@ -3,7 +3,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 1000
+n <- 5000
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -113,7 +113,7 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
 n_folds <- 6
-nested_cv_reps <- 300 
+nested_cv_reps <- 5000 
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
@@ -231,10 +231,10 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             name = "gaussian_lasso")
 
 
-DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
+DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
 
 n_folds <- 6
-nested_cv_reps <- 300 #average over many random splits
+nested_cv_reps <- 5000 #average over many random splits
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
