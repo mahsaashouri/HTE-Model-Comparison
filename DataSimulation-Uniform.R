@@ -3,7 +3,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 1000
+n <- 5000
 
 
 # Generate random values for x1 and x2 from a normal distribution
@@ -33,15 +33,6 @@ beta_A <- 1.5
 
 # Generate random error terms
 epsilon <- rnorm(n, mean = 0, sd = 1)
-
-Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A  + beta6 * A * x1 +  beta7 * A * x2 +  
-  beta8 * A * x3 +  beta9 * A * x4 +  beta10 * A*x5 + epsilon
-
-# Create a data frame with the generated data
-DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A ,'x1.t' = A*x1, 'x2.t' = A*x2, 
-                   'x3.t' = A*x3, 'x4.t' = A*x4, 'x5.t' = A*x5)
-# View the first few rows of the data
-head(DATA)
 
 
 ######################
@@ -123,10 +114,13 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 
 
+Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A  + beta6 * A * x1 +  beta7 * A * x2 +  
+  beta8 * A * x3 +  beta9 * A * x4 +  beta10 * A*x5 + epsilon
+
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A ,'x1.t' = A*x1, 'x2.t' = A*x2, 
                    'x3.t' = A*x3, 'x4.t' = A*x4, 'x5.t' = A*x5)
 n_folds <- 6
-nested_cv_reps <- 300 
+nested_cv_reps <- 5000 
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
@@ -244,11 +238,12 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             name = "gaussian_lasso")
 
 
-DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A ,'x1.t' = A*x1, 'x2.t' = A*x2, 
-                   'x3.t' = A*x3, 'x4.t' = A*x4, 'x5.t' = A*x5)
+Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A + epsilon
+
+DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A)
 
 n_folds <- 6
-nested_cv_reps <- 300 #average over many random splits
+nested_cv_reps <- 5000 #average over many random splits
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
