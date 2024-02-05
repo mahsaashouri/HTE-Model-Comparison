@@ -273,12 +273,6 @@ nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), t
 
 ## glmnet
 
-n <- nrow(train.set) #number of observations
-p <- ncol(train.set) #number of features
-k <- 4 #number of nonzero coefficients
-alpha <- .1 #nominal error rate, total across both tails.
-
-
 #Fit one model to find a good lambda. This lambda will be fixed in future simulations.
 fit <- cv.glmnet(train.set, Y.train, Treat.train, family = "gaussian")
 lambdas <- fit$lambda
