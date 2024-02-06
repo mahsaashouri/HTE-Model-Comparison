@@ -65,7 +65,7 @@ Treat.test <- treat[test_idx]
 
 tau.range = seq(1,10, by =1)
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.1)
 
 
 
@@ -137,5 +137,5 @@ Y.test <-  Y[test_idx]
 
 
 nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.1)
 
