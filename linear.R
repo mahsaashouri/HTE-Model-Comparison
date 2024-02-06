@@ -1,6 +1,11 @@
 
 library(dplyr)
 
+
+######################
+## Reduced model
+######################
+
 squared_loss <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 }
@@ -26,7 +31,7 @@ linear_regression_funs <- list(fitter = fitter_lm,
 
 
 n_folds <- 6
-nested_cv_reps <- 300 #average over many random splits
+nested_cv_reps <- 5000 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
@@ -40,13 +45,8 @@ top_10_predictors <- names(top_10_correlations)
 selected_data <- DATA[, top_10_predictors]
 
 output <- DATA[,c('iqsb.36', 'treat')]
-selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
-for(k in 1:10){
-  selected_data.T[,k] <- selected_data[,k]*output$treat
-}
-colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
 
-DATA.cor <- bind_cols(output, selected_data, selected_data.T)
+DATA.cor <- bind_cols(output, selected_data)
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
@@ -68,12 +68,12 @@ Treat.test <- treat[test_idx]
 
 tau.range = seq(1,10, by =1)
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 
 
 
 ######################
-## Comparison
+## Full model
 ######################
 
 squared_loss <- function(y1, y2, funcs_params = NA) {
@@ -101,7 +101,7 @@ linear_regression_funs <- list(fitter = fitter_lm,
 
 
 n_folds <- 6
-nested_cv_reps <- 300 #average over many random splits
+nested_cv_reps <- 5000 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
@@ -141,6 +141,5 @@ Y.test <-  Y[test_idx]
 
 
 nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
-                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
-#nested_cv_helper(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
- #                n_folds = n_folds)
+                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
+
