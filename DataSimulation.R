@@ -23,6 +23,7 @@ beta5 <- -2
 # Generate random error terms
 epsilon <- rnorm(n, mean = 0, sd = 1)
 
+Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * A + beta4 * A * x1 + beta5 * A * x2 + epsilon
 ######################
 ## full model
 ######################
@@ -100,7 +101,7 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             loss = misclass_loss,
                             name = "gaussian_lasso")
 
-Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * A + beta4 * A * x1 + beta5 * A * x2 + epsilon
+
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
 n_folds <- 6
@@ -221,7 +222,6 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             loss = misclass_loss,
                             name = "gaussian_lasso")
 
-Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * A + epsilon
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
 
 n_folds <- 6
@@ -247,11 +247,11 @@ Treat.test <- treat[test_idx]
 tau.range = seq(1,10, by =1)
 ## linear
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .01)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .1)
 
 ## glmboost
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range , glmboost_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .01)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .1)
 
 ## glmnet
 
@@ -263,5 +263,5 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, 
-            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = .01)
+            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = .1)
 

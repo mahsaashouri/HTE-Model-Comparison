@@ -77,7 +77,7 @@ lambda <- lambdas[1:best_lam]
 tau.range = seq(1,10, by =1)
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.1)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.01)
 
 
 
@@ -160,5 +160,5 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.1)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.01)
 

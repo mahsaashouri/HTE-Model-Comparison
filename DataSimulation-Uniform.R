@@ -34,7 +34,8 @@ beta_A <- 1.5
 # Generate random error terms
 epsilon <- rnorm(n, mean = 0, sd = 1)
 
-
+Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A  + beta6 * A * x1 +  beta7 * A * x2 +  
+  beta8 * A * x3 +  beta9 * A * x4 +  beta10 * A*x5 + epsilon
 ######################
 ## full model
 ######################
@@ -114,8 +115,6 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 
 
-Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A  + beta6 * A * x1 +  beta7 * A * x2 +  
-  beta8 * A * x3 +  beta9 * A * x4 +  beta10 * A*x5 + epsilon
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A ,'x1.t' = A*x1, 'x2.t' = A*x2, 
                    'x3.t' = A*x3, 'x4.t' = A*x4, 'x5.t' = A*x5)
@@ -138,16 +137,11 @@ Y.test <-  Y[test_idx]
 
 ## linear
 nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 ## glmboost
 nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 ## glmnet
-n <- nrow(train.set) #number of observations
-p <- ncol(train.set) #number of features
-k <- 4 #number of nonzero coefficients
-alpha <- .1 #nominal error rate, total across both tails.
-
 
 fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
 lambdas <- fit$lambda
@@ -157,7 +151,7 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.05)
 ######################
 ## reduced model
 ######################
@@ -238,7 +232,6 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             name = "gaussian_lasso")
 
 
-Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * x3 + beta4 * x4 + beta5 * x5 + beta_A * A + epsilon
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'x3' = x3,'x4' = x4,'x5' = x5,'A' =A)
 
@@ -265,11 +258,11 @@ Treat.test <- treat[test_idx]
 tau.range = seq(1,10, by =1)
 ## linear
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 
 ## glmboost
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range , glmboost_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 
 ## glmnet
 
@@ -281,5 +274,5 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, 
-            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T)
+            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.05)
 
