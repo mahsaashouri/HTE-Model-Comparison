@@ -137,10 +137,10 @@ Y.test <-  Y[test_idx]
 
 ## linear
 nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 ## glmboost
 nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 ## glmnet
 
 fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
@@ -151,7 +151,7 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.05)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.01)
 ######################
 ## reduced model
 ######################
@@ -258,11 +258,11 @@ Treat.test <- treat[test_idx]
 tau.range = seq(1,10, by =1)
 ## linear
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 
 ## glmboost
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range , glmboost_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 
 ## glmnet
 
@@ -274,5 +274,5 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, 
-            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.05)
+            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.01)
 
