@@ -1,5 +1,30 @@
 
-naive_cv_m <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, alpha = .1,
+
+## Add range of alphas
+
+
+nested_cv_m <- function(X, Y, Treat, range.tau, funcs, reps , n_folds,  alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
+                        funcs_params = NULL, n_cores = 1, verbose = F) {
+  min_diff <- Inf
+  best_alpha <- NULL
+  result <- NULL
+  
+  for (alpha in alpha_values) {
+    res <- nested_cv_m_alpha(X, Y, Treat, range.tau, funcs, reps , n_folds,  alpha = alpha, bias_reps = NA,
+                             funcs_params = NULL, n_cores = 1, verbose = F)
+    diff <- res$ci_hi - res$ci_lo
+    if (diff < min_diff) {
+      min_diff <- diff
+      best_alpha <- alpha
+      result <- res
+    }
+  }
+  
+  result$best_alpha <- best_alpha
+  return(result)
+}
+
+naive_cv_m <- function(X, Y, Treat, range.tau, funcs, n_folds, alpha = alpha,
                      trans = list(identity), funcs_params = NULL, fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
@@ -44,7 +69,7 @@ naive_cv_m <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, alpha = .1,
 
 # nested CV
 
-nested_cv_m <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10,  alpha = .1, bias_reps = NA,
+nested_cv_m_alpha <- function(X, Y, Treat, range.tau, funcs, reps, n_folds,  alpha = .1, bias_reps = NA,
                       funcs_params = NULL, n_cores = 1, verbose = F) {
   #estimate time required
   if(verbose) {
@@ -114,7 +139,7 @@ nested_cv_m <- function(X, Y, Treat, range.tau, funcs, reps = 50, n_folds = 10, 
        "running_sd_infl" = infl_est2)
 }
 
-nested_cv_helper_m <- function(X, Y, Treat, range.tau, funcs, n_folds = 10, funcs_params = NULL) {
+nested_cv_helper_m <- function(X, Y, Treat, range.tau, funcs, n_folds, funcs_params = NULL) {
   min_ho_errors <- NULL
   fold_id <- 1:nrow(X) %% n_folds + 1
   fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds

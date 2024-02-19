@@ -1,9 +1,8 @@
-
 # Set seed for reproducibility
 set.seed(123)
 
 # Define the number of observations
-n <- 5000
+n <- 50
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -104,7 +103,7 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
-n_folds <- 6
+n_folds <- 10
 nested_cv_reps <- 5000 
 
 set.seed(123)
@@ -224,7 +223,7 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
 
-n_folds <- 6
+n_folds <- 10
 nested_cv_reps <- 5000 #average over many random splits
 
 set.seed(123)
@@ -247,7 +246,7 @@ Treat.test <- treat[test_idx]
 tau.range = seq(1,10, by =1)
 ## linear
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .1)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5))
 
 ## glmboost
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range , glmboost_funs, 
@@ -264,4 +263,3 @@ lambda <- lambdas[1:best_lam]
 nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, 
             funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = .1)
-
