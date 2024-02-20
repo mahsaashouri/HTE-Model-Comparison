@@ -2,7 +2,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 5000
+n <- 1000
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -104,7 +104,7 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
 n_folds <- 10
-nested_cv_reps <- 5000 
+nested_cv_reps <- 1000 
 
 set.seed(123)
 train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
@@ -122,17 +122,11 @@ Y.test <-  Y[test_idx]
 
 ## linear
 nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .01)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 ## glmboost
 nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .01)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 ## glmnet
-n <- nrow(train.set) #number of observations
-p <- ncol(train.set) #number of features
-k <- 4 #number of nonzero coefficients
-alpha <- .1 #nominal error rate, total across both tails.
-
-
 fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
 lambdas <- fit$lambda
 best_lam <- match(fit$lambda.1se, lambdas) 
@@ -141,7 +135,7 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = .01)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha)
 ######################
 ## reduced model
 ######################
@@ -149,11 +143,11 @@ nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs,
 ## linear
 library(dplyr)
 
-squared_loss <- function(y1, y2, t, tau, funcs_params = NA) {
+squared_loss_m <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 }
 
-fitter_lm <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
+fitter_lm_m <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if (sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
@@ -163,23 +157,23 @@ fitter_lm <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   fit
 }
 
-predictor_lm <- function(fit, X_new, funcs_params = NA) {
+predictor_lm_m <- function(fit, X_new, funcs_params = NA) {
   predict(fit, newdata = X_new)
 }
 
-linear_regression_funs <- list(fitter = fitter_lm,
-                               predictor = predictor_lm,
-                               loss = squared_loss,
-                               name = "linear_regression")
+linear_regression_funs_m <- list(fitter = fitter_lm_m,
+                               predictor = predictor_lm_m,
+                               loss = squared_loss_m,
+                               name = "linear_regression_m")
 
 ## glmboost
 library(mboost)
 
-squared_loss <- function(y1, y2, t, tau, funcs_params = NA) {
+squared_loss_m <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 }
 
-fitter_glmboost <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
+fitter_glmboost_m <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if (sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
@@ -187,28 +181,28 @@ fitter_glmboost <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   fit
 }
 
-predictor_glmboost <- function(fit, X_new, funcs_params = NA) {
+predictor_glmboost_m <- function(fit, X_new, funcs_params = NA) {
   as.numeric(predict(fit, newdata = as.matrix(X_new)))
 }
 
-glmboost_funs <- list(fitter = fitter_glmboost,
-                      predictor = predictor_glmboost,
-                      loss = squared_loss,
-                      name = "glmboost")
+glmboost_funs_m <- list(fitter = fitter_glmboost_m,
+                      predictor = predictor_glmboost_m,
+                      loss = squared_loss_m,
+                      name = "glmboost_m")
 ## glmnet
 library(glmnet)
-misclass_loss <- function(y1, y2, t, tau, funcs_params = NA) {
+misclass_loss_m <- function(y1, y2, t, tau, funcs_params = NA) {
   (y1 - (y2-(tau*t)))^2
 } 
 
-fitter_glmnet <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
+fitter_glmnet_m <- function(X, Y, Treat, tau, idx = NA, funcs_params = NA) {
   if(sum(is.na(idx)) > 0) {idx <- 1:nrow(X)}
   fit <- glmnet(X[idx, ], Y[idx]-(tau*Treat[idx]), family = "gaussian") 
   
   fit
 }
 
-predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
+predictor_glmnet_m <- function(fit, X_new, funcs_params = NA) {
   #preds <- predict(fit, newx = as.matrix(X_new), type = "response", s = funcs_params$best_lam)
   beta_hat <- fit$beta[, funcs_params$best_lam] 
   a0_hat <- fit$a0[funcs_params$best_lam]
@@ -216,50 +210,50 @@ predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
   preds
 } 
 
-gaussian_lasso_funs <- list(fitter = fitter_glmnet,
-                            predictor = predictor_glmnet,
-                            loss = misclass_loss,
-                            name = "gaussian_lasso")
+gaussian_lasso_funs_m <- list(fitter = fitter_glmnet_m,
+                            predictor = predictor_glmnet_m,
+                            loss = misclass_loss_m,
+                            name = "gaussian_lasso_m")
 
-DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
+DATA_m <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
 
 n_folds <- 10
-nested_cv_reps <- 5000 #average over many random splits
+nested_cv_reps <- 1000 #average over many random splits
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA), train_idx)
+train_idx_m <- sample(1:nrow(DATA_m), round(.7 * nrow(DATA_m)), replace = FALSE)
+test_idx_m <- setdiff(1:nrow(DATA_m), train_idx)
 
-Y <- DATA$Y
-treat <- DATA$A
-DATA <- DATA[ , !(names(DATA) %in% c('Y', 'A'))]
+Y_m <- DATA_m$Y
+treat_m <- DATA_m$A
+DATA_m <- DATA_m[ , !(names(DATA_m) %in% c('Y', 'A'))]
 
-DATA <- model.matrix(Y~.-1, data = DATA)
+DATA_m <- model.matrix(Y_m~.-1, data = DATA_m)
 
-train.set <- DATA[train_idx, ]
-Y.train <- Y[train_idx]
-Treat.train <- treat[train_idx]
-test.set <- DATA[test_idx, ]
-Y.test <-  Y[test_idx]
-Treat.test <- treat[test_idx]
+train.set_m <- DATA_m[train_idx_m, ]
+Y.train_m <- Y_m[train_idx_m]
+Treat.train_m <- treat_m[train_idx_m]
+test.set_m <- DATA_m[test_idx_m, ]
+Y.test_m <-  Y_m[test_idx_m]
+Treat.test_m <- treat_m[test_idx_m]
 
 tau.range = seq(1,10, by =1)
 ## linear
-nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5))
+nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range, linear_regression_funs_m, 
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 
 ## glmboost
-nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range , glmboost_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = .1)
+nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range , glmboost_funs_m, 
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 
 ## glmnet
 
 #Fit one model to find a good lambda. This lambda will be fixed in future simulations.
-fit <- cv.glmnet(train.set, Y.train, Treat.train, family = "gaussian")
-lambdas <- fit$lambda
-best_lam <- match(fit$lambda.1se, lambdas) #selected value of lambda
-lambda <- lambdas[1:best_lam]
+fit_m <- cv.glmnet(train.set_m, Y.train_m, Treat.train_m, family = "gaussian")
+lambdas_m <- fit_m$lambda
+best_lam_m <- match(fit_m$lambda.1se, lambdas_m) #selected value of lambda
+lambda_m <- lambdas_m[1:best_lam_m]
 
-nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, gaussian_lasso_funs, 
+nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range, gaussian_lasso_funs_m, 
             n_folds = n_folds, reps  = nested_cv_reps, 
-            funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = .1)
+            funcs_params = list("lambdas" = lambdas_m, "best_lam" = best_lam_m), verbose = T, alpha)
