@@ -16,10 +16,7 @@ nested_cv_diff <- function(X_m , X, Y_m, Y, Treat, range.tau, funcs_m, funcs_s, 
                          funcs_params = NULL, n_cores = 1, verbose = F)
     all_results[[as.character(alpha0)]] <- list(res, res_m)
     
-    diff_res <- res$ci_hi - res$ci_lo
-    diff_res_m <- res_m$ci_hi - res_m$ci_lo
-    diff <- abs(diff_res - diff_res_m)
-    
+    diff <- res$ci_hi - res_m$ci_lo
     if (diff < min_diff) {
       min_diff <- diff
       best_alpha <- alpha0
