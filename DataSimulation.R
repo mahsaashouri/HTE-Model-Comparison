@@ -2,7 +2,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 5000
+n <- 500
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -125,7 +125,7 @@ nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs,
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 ## glmboost
 nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 ## glmnet
 fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
 lambdas <- fit$lambda
@@ -135,7 +135,7 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.5)
 ######################
 ## reduced model
 ######################
@@ -244,7 +244,7 @@ nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train
 
 ## glmboost
 nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range , glmboost_funs_m, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 
 ## glmnet
 
@@ -256,4 +256,4 @@ lambda_m <- lambdas_m[1:best_lam_m]
 
 nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range, gaussian_lasso_funs_m, 
             n_folds = n_folds, reps  = nested_cv_reps, 
-            funcs_params = list("lambdas" = lambdas_m, "best_lam" = best_lam_m), verbose = T, alpha)
+            funcs_params = list("lambdas" = lambdas_m, "best_lam" = best_lam_m), verbose = T, alpha = 0.5)
