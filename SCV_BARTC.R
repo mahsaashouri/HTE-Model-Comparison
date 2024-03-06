@@ -12,7 +12,7 @@ naive_cv_BART <- function(X, Y, Treat,funcs, n_folds, alpha = alpha,
   gp_errors <- c()
     for(k in 1:n_folds) {
       fit <- funcs$fitter(X[fold_id !=k, ], Y[fold_id != k], Treat[fold_id != k], funcs_params = funcs_params)
-      Y_hat <- funcs$predictor(fit, X[fold_id == k, ], Treat[fold_id == k,], funcs_params = funcs_params)
+      Y_hat <- funcs$predictor(fit, X[fold_id == k, ], Treat[fold_id == k], funcs_params = funcs_params)
       error_k <- funcs$loss(Y_hat, Y[fold_id == k], funcs_params = funcs_params)
       errors <- c(errors, error_k)
       

@@ -59,3 +59,5 @@ nested_cv_BART(data.frame(DATA), as.vector(Y), as.vector(Treat), bartC_funs,
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 #nested_cv_helper_BART(data.frame(DATA), as.vector(Y), as.vector(Treat), bartC_funs, 
 #                 n_folds = n_folds)
+#naive_cv_BART(data.frame(DATA), as.vector(Y), as.vector(Treat),bartC_funs, n_folds = n_folds, alpha = 0.5,
+#                          trans = list(identity), funcs_params = NULL, fold_id = NULL)
