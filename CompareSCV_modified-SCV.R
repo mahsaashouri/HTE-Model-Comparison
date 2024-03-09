@@ -29,19 +29,19 @@ nested_cv_diff <- function(X_m , X, Y_m, Y, Treat, range.tau, funcs_m, funcs_s, 
   return(result)
 }
 ## linear
-nested_cv_diff(X_m = data.frame(train.set_m), X = data.frame(train.set), Y_m = as.vector(Y.train_m), Y = as.vector(Y.train), 
-               Treat = as.vector(Treat.train_m), range.tau = tau.range, funcs_m = linear_regression_funs_m, funcs_s = linear_regression_funs, reps = nested_cv_reps , n_folds = n_folds,  
+nested_cv_diff(X_m = data.frame(DATA_m), X = data.frame(DATA), Y_m = as.vector(Y_m), Y = as.vector(Y), 
+               Treat = as.vector(Treat_m), range.tau = tau.range, funcs_m = linear_regression_funs_m, funcs_s = linear_regression_funs, reps = nested_cv_reps , n_folds = n_folds,  
                alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
                funcs_params_m = NULL, funcs_params = NULL, n_cores = 1, verbose = F)
 ## glmboost
 
-nested_cv_diff(X_m = data.frame(train.set_m), X = data.frame(train.set), Y_m = as.vector(Y.train_m), Y = as.vector(Y.train), 
-               Treat = as.vector(Treat.train_m), range.tau = tau.range, funcs_m = glmboost_funs_m, funcs_s = glmboost_funs, reps = nested_cv_reps , n_folds = n_folds,  
+nested_cv_diff(X_m = data.frame(DATA_m), X = data.frame(DATA), Y_m = as.vector(Y_m), Y = as.vector(Y), 
+               Treat = as.vector(Treat_m), range.tau = tau.range, funcs_m = glmboost_funs_m, funcs_s = glmboost_funs, reps = nested_cv_reps , n_folds = n_folds,  
                alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
                funcs_params_m = NULL, funcs_params = NULL, n_cores = 1, verbose = F)
 ## glmnet
-nested_cv_diff(X_m = data.frame(train.set_m), X = data.frame(train.set), Y_m = as.vector(Y.train_m), Y = as.vector(Y.train), 
-               Treat = as.vector(Treat.train_m), range.tau = tau.range, funcs_m = gaussian_lasso_funs_m, funcs_s = gaussian_lasso_funs, reps = nested_cv_reps , n_folds = n_folds,  
+nested_cv_diff(X_m = data.frame(DATA_m), X = data.frame(DATA), Y_m = as.vector(Y_m), Y = as.vector(Y), 
+               Treat = as.vector(Treat_m), range.tau = tau.range, funcs_m = gaussian_lasso_funs_m, funcs_s = gaussian_lasso_funs, reps = nested_cv_reps , n_folds = n_folds,  
                alpha_values = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
                funcs_params_m = list("lambdas" = lambdas_m, "best_lam" = best_lam_m), funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), n_cores = 1, verbose = F)
 
