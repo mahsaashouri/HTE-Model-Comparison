@@ -107,33 +107,34 @@ n_folds <- 10
 nested_cv_reps <- 5000 
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA), train_idx)
+#train_idx <- sample(1:nrow(DATA), round(.7 * nrow(DATA)), replace = FALSE)
+#test_idx <- setdiff(1:nrow(DATA), train_idx)
 
 Y <- DATA$Y
 DATA <- DATA[ , !(names(DATA) %in% c('Y'))]
 
 DATA <- model.matrix(Y~.-1, data = DATA)
 
-train.set <- DATA[train_idx, ]
-Y.train <- Y[train_idx]
-test.set <- DATA[test_idx, ]
-Y.test <-  Y[test_idx]
+## if we need training and test sets
+#train.set <- DATA[train_idx, ]
+#Y.train <- Y[train_idx]
+#test.set <- DATA[test_idx, ]
+#Y.test <-  Y[test_idx]
 
 ## linear
-nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
+nested_cv(data.frame(DATA), as.vector(Y), linear_regression_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 ## glmboost
-nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
+nested_cv(data.frame(DATA), as.vector(Y), glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 ## glmnet
-fit <- cv.glmnet(as.matrix(train.set), Y.train, family = "gaussian")
+fit <- cv.glmnet(as.matrix(DATA), Y, family = "gaussian")
 lambdas <- fit$lambda
 best_lam <- match(fit$lambda.1se, lambdas) 
 lambda <- lambdas[1:best_lam]
 
 
-nested_cv(data.frame(train.set), as.vector(Y.train), gaussian_lasso_funs, 
+nested_cv(data.frame(DATA), as.vector(Y), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
           funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.5)
 ######################
@@ -225,35 +226,36 @@ train_idx_m <- sample(1:nrow(DATA_m), round(.7 * nrow(DATA_m)), replace = FALSE)
 test_idx_m <- setdiff(1:nrow(DATA_m), train_idx)
 
 Y_m <- DATA_m$Y
-treat_m <- DATA_m$A
+Treat_m <- DATA_m$A
 DATA_m <- DATA_m[ , !(names(DATA_m) %in% c('Y', 'A'))]
 
 DATA_m <- model.matrix(Y_m~.-1, data = DATA_m)
 
-train.set_m <- DATA_m[train_idx_m, ]
-Y.train_m <- Y_m[train_idx_m]
-Treat.train_m <- treat_m[train_idx_m]
-test.set_m <- DATA_m[test_idx_m, ]
-Y.test_m <-  Y_m[test_idx_m]
-Treat.test_m <- treat_m[test_idx_m]
+## if we need training and test sets
+#train.set_m <- DATA_m[train_idx_m, ]
+#Y.train_m <- Y_m[train_idx_m]
+#Treat.train_m <- Treat_m[train_idx_m]
+#test.set_m <- DATA_m[test_idx_m, ]
+#Y.test_m <-  Y_m[test_idx_m]
+#Treat.test_m <- Treat_m[test_idx_m]
 
 tau.range = seq(1,10, by =1)
 ## linear
-nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range, linear_regression_funs_m, 
+nested_cv_m(data.frame(DATA_m), as.vector(Y_m), as.vector(Treat_m), tau.range, linear_regression_funs_m, 
             n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
 
 ## glmboost
-nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range , glmboost_funs_m, 
+nested_cv_m(data.frame(DATA_m), as.vector(Y_m), as.vector(Treat_m), tau.range , glmboost_funs_m, 
             n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 
 ## glmnet
 
 #Fit one model to find a good lambda. This lambda will be fixed in future simulations.
-fit_m <- cv.glmnet(train.set_m, Y.train_m, Treat.train_m, family = "gaussian")
+fit_m <- cv.glmnet(DATA_m, Y_m, Treat_m, family = "gaussian")
 lambdas_m <- fit_m$lambda
 best_lam_m <- match(fit_m$lambda.1se, lambdas_m) #selected value of lambda
 lambda_m <- lambdas_m[1:best_lam_m]
 
-nested_cv_m(data.frame(train.set_m), as.vector(Y.train_m), as.vector(Treat.train_m), tau.range, gaussian_lasso_funs_m, 
+nested_cv_m(data.frame(DATA_m), as.vector(Y_m), as.vector(Treat_m), tau.range, gaussian_lasso_funs_m, 
             n_folds = n_folds, reps  = nested_cv_reps, 
             funcs_params = list("lambdas" = lambdas_m, "best_lam" = best_lam_m), verbose = T, alpha = 0.5)

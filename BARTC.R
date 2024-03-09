@@ -26,8 +26,6 @@ bartC_funs <- list(fitter = fitter_bartc,
                                name = "bartC")
 
 
-n_folds <- 6
-nested_cv_reps <- 300 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
@@ -54,6 +52,9 @@ library(bartCause)
 #pred <- predict(fit, newdata = cbind.data.frame(test.set, z = Treat.test))
 
 
+alpha <- 0.01
+n_folds <- 6
+nested_cv_reps <- 5000 #average over many random splits
 
 nested_cv_BART(data.frame(DATA), as.vector(Y), as.vector(Treat), bartC_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
