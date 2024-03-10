@@ -9,7 +9,7 @@ fitter_bartc <- function(X, Y, Treat, idx = NA, funcs_params = NA) {
   if (sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
-  fit <- bartc(Y[idx], Treat[idx], X[idx, ], keepTrees = TRUE)  
+  fit <- bartc(Y[idx], Treat[idx], X[idx, ], keepTrees = TRUE, n.samples = 100L, n.burn = 15L, n.chains = 2L)  
   
   fit
 }
