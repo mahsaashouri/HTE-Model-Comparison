@@ -126,20 +126,20 @@ DATA.cor <- bind_cols(output, selected_data, selected_data.T)
 DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
+#train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
+#test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
 
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-train.set <- DATA.cor[train_idx, ]
-Y.train <- Y[train_idx]
-test.set <- DATA.cor[test_idx, ]
-Y.test <-  Y[test_idx]
+#train.set <- DATA.cor[train_idx, ]
+#Y.train <- Y[train_idx]
+#test.set <- DATA.cor[test_idx, ]
+#Y.test <-  Y[test_idx]
 
 
-nested_cv(data.frame(train.set), as.vector(Y.train), linear_regression_funs, 
+nested_cv(data.frame(DATA.cor), as.vector(Y), linear_regression_funs, 
                     n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 
