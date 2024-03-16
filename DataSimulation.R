@@ -2,7 +2,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 100
+n <- 500
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -123,7 +123,7 @@ DATA <- model.matrix(Y~.-1, data = DATA)
 
 ## linear
 nested_cv(data.frame(DATA), as.vector(Y), linear_regression_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha)
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 ## glmboost
 nested_cv(data.frame(DATA), as.vector(Y), glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
