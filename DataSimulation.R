@@ -100,6 +100,32 @@ gaussian_lasso_funs <- list(fitter = fitter_glmnet,
                             loss = misclass_loss,
                             name = "gaussian_lasso")
 
+## bartCause
+
+squared_loss <- function(y1, y2, funcs_params = NA) {
+  (y1 - y2)^2
+}
+
+# Function for fitting BART Cause model
+fitter_bartc <- function(X, Y, Treat, idx = NA, funcs_params = NA) {
+  if (sum(is.na(idx)) > 0) {
+    idx <- 1:nrow(X)
+  }
+  fit <- bartc(Y[idx], Treat[idx], X[idx, ], keepTrees = TRUE, n.samples = 100L, n.burn = 15L, n.chains = 2L)  
+  
+  fit
+}
+
+# Function for making predictions using BART Cause model
+predictor_bartc <- function(fit, X_new, Treat_new, funcs_params = NA) {
+  colMeans(predict(fit, newdata = cbind.data.frame(X_new, z = Treat_new)))
+}
+
+# Linear regression functions
+bartC_funs <- list(fitter = fitter_bartc,
+                   predictor = predictor_bartc,
+                   loss = squared_loss,
+                   name = "bartC")
 
 
 DATA <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
@@ -137,6 +163,16 @@ lambda <- lambdas[1:best_lam]
 nested_cv(data.frame(DATA), as.vector(Y), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
           funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.5)
+
+## bartCause
+Y <- DATA$Y
+Treat <- DATA$A
+DATA <- DATA[ , !(names(DATA) %in% c('Y', 'A'))]
+
+DATA.cor <- model.matrix(Y~.-1, data = DATA)
+library(bartCause)
+nested_cv_BART(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), bartC_funs, 
+               n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 ######################
 ## reduced model
 ######################
@@ -222,8 +258,8 @@ n_folds <- 10
 nested_cv_reps <- 5000 #average over many random splits
 
 set.seed(123)
-train_idx_m <- sample(1:nrow(DATA_m), round(.7 * nrow(DATA_m)), replace = FALSE)
-test_idx_m <- setdiff(1:nrow(DATA_m), train_idx)
+#train_idx_m <- sample(1:nrow(DATA_m), round(.7 * nrow(DATA_m)), replace = FALSE)
+#test_idx_m <- setdiff(1:nrow(DATA_m), train_idx)
 
 Y_m <- DATA_m$Y
 Treat_m <- DATA_m$A
