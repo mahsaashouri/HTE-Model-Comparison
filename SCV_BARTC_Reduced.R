@@ -1,19 +1,20 @@
 
 
-naive_cv_BART <- function(X, Y, Treat, funcs, n_folds, alpha = alpha,
+naive_cv_m <- function(X_m, Y_m, Treat, range.tau, funcs, n_folds, alpha = alpha,
                        trans = list(identity), funcs_params = NULL, fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
-    fold_id <- (1:nrow(X)) %% n_folds + 1
+    fold_id <- (1:nrow(X_m)) %% n_folds + 1
     fold_id <- sample(fold_id)
   }
   
   errors <- c()
   gp_errors <- c()
+  for(tau in range.tau){
     for(k in 1:n_folds) {
-      fit <- funcs$fitter(X[fold_id !=k, ], Y[fold_id != k], Treat[fold_id != k], funcs_params = funcs_params)
-      Y_hat <- funcs$predictor(fit, X[fold_id == k, ], Treat[fold_id == k], funcs_params = funcs_params)
-      error_k <- funcs$loss(Y_hat, Y[fold_id == k], funcs_params = funcs_params)
+      fit <- funcs$fitter(X_m[fold_id !=k, ], Y_m[fold_id != k], Treat[fold_id != k], tau, funcs_params = funcs_params)
+      Y_m_hat <- funcs$predictor(fit, X_m[fold_id == k, ], Treat[fold_id == k], funcs_params = funcs_params)
+      error_k <- funcs$loss(Y_m_hat, Y_m[fold_id == k], Treat[fold_id == k], tau, funcs_params = funcs_params)
       errors <- c(errors, error_k)
       
       temp_vec <- c()
@@ -24,29 +25,32 @@ naive_cv_BART <- function(X, Y, Treat, funcs, n_folds, alpha = alpha,
     }
     if (is.null(min_gp_errors) || sum(gp_errors) < sum(min_gp_errors)) {
       min_gp_errors <- gp_errors
+      best_tau <- tau
       best_errors <- errors
     }
-
+  }
+  
   return(list("err_hat" = mean(best_errors),
-              "ci_lo" = mean(best_errors) - qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y)),
-              "ci_hi" = mean(best_errors) + qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y)),
+              "ci_lo" = mean(best_errors) - qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y_m)),
+              "ci_hi" = mean(best_errors) + qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y_m)),
               "raw_mean" = mean(best_errors),
               "sd" = sd(best_errors),
               "group_err_hat" = apply(min_gp_errors, 2, mean),
               "group_sd" = apply(min_gp_errors, 2, sd),
               "raw_errors" = best_errors,
-              "fold_id" = fold_id))
+              "fold_id" = fold_id, 
+              "tau" = best_tau))
 }
 
 
 # nested CV
 
-nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, bias_reps = NA,
+nested_cv_m <- function(X_m, Y_m, Treat, range.tau, funcs, reps, n_folds,  alpha = alpha, bias_reps = NA,
                         funcs_params = NULL, n_cores = 1, verbose = F) {
   #estimate time required
   if(verbose) {
     t1 <- Sys.time()
-    temp <- nested_cv_helper_BART(X, Y, Treat,  funcs, n_folds,
+    temp <- nested_cv_helper_m(X_m, Y_m, Treat, range.tau, funcs, n_folds,
                                funcs_params = funcs_params)
     t2 <- Sys.time()
     print(paste0("Estimated time required: ", (t2 - t1) * reps))
@@ -56,11 +60,12 @@ nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, b
   var_pivots <- c()
   gp_errs <- c()
   ho_errs <- c()
+  tau <- c()
   if(n_cores == 1){
-    raw <- lapply(1:reps, function(i){nested_cv_helper_BART(X, Y, Treat,funcs, n_folds,
+    raw <- lapply(1:reps, function(i){nested_cv_helper_m(X_m, Y_m, Treat, range.tau,funcs, n_folds,
                                                          funcs_params = funcs_params)})
   } else {
-    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper_BART(X, Y, Treat, funcs, n_folds,
+    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper_m(X_m, Y_m, Treat, range.tau, funcs, n_folds,
                                                                      funcs_params = funcs_params)},
                               mc.cores = n_cores)
   }
@@ -68,10 +73,11 @@ nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, b
     temp <- raw[[i]]
     var_pivots <- rbind(var_pivots, temp$pivots)
     ho_errs <- c(ho_errs, temp$errs)
+    tau <- c(tau, temp$tau)
   }
   
   ########
-  n_sub <- floor(length(Y) * (n_folds - 1) / n_folds)
+  n_sub <- floor(length(Y_m) * (n_folds - 1) / n_folds)
   # look at the estimate of inflation after each repetition
   ugp_infl <- sqrt(max(0, mean(var_pivots[, 1]^2 - var_pivots[, 2]))) / (sd(ho_errs) / sqrt(n_sub))
   ugp_infl <- max(1, min(ugp_infl, sqrt(n_folds)))
@@ -91,7 +97,7 @@ nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, b
   }
   else {
     for(i in 1:bias_reps) {
-      temp <- naive_cv_BART(X, Y, Treat, funcs, n_folds, funcs_params = funcs_params, alpha = alpha)
+      temp <- naive_cv_m(X_m, Y_m, Treat, range.tau, funcs, n_folds, funcs_params = funcs_params, alpha = alpha)
       cv_means <- c(cv_means, temp$err_hat)
     }
     
@@ -101,46 +107,48 @@ nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, b
   
   list("sd_infl" = ugp_infl,
        "err_hat" = pred_est,
-       "ci_lo" = pred_est - qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
-       "ci_hi" = pred_est + qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
+       "ci_lo" = pred_est - qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y_m)) * ugp_infl,
+       "ci_hi" = pred_est + qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y_m)) * ugp_infl,
        "raw_mean" = mean(ho_errs),
        "bias_est" = bias_est,
        "sd" = sd(ho_errs),
        "running_sd_infl" = infl_est2)
 }
 
-nested_cv_helper_BART <- function(X, Y, Treat, funcs, n_folds, funcs_params = NULL) {
+nested_cv_helper_m <- function(X_m, Y_m, Treat, range.tau, funcs, n_folds, funcs_params = NULL) {
   min_ho_errors <- NULL
-  fold_id <- 1:nrow(X) %% n_folds + 1
-  fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
-  fold_id <- c(fold_id, rep(0, nrow(X) %% n_folds))
+  fold_id <- 1:nrow(X_m) %% n_folds + 1
+  fold_id <- sample(fold_id[1:(nrow(X_m) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
+  fold_id <- c(fold_id, rep(0, nrow(X_m) %% n_folds))
   
   #nested CV model fitting
-  ho_errors <- array(0, dim = c(n_folds, n_folds, nrow(X) %/% n_folds))
+  ho_errors <- array(0, dim = c(n_folds, n_folds, nrow(X_m) %/% n_folds))
   #^ entry i, j is error on fold i,
   # when folds i & j are not used for model fitting.
+  for (tau in range.tau) {
     for(f1 in 1:(n_folds - 1)) {
       for(f2 in (f1+1):n_folds) {
         test_idx <- c(which(fold_id == f1), which(fold_id == f2))
-        fit <- funcs$fitter(as.matrix(X[-test_idx, ]), Y[-test_idx], Treat[-test_idx], funcs_params = funcs_params)
-        preds <- funcs$predictor(fit, X, Treat, funcs_params = funcs_params)
-        ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], Y[fold_id == f1], funcs_params = funcs_params)
-        ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], Y[fold_id == f2], funcs_params = funcs_params)
+        fit <- funcs$fitter(as.matrix(X_m[-test_idx, ]), Y_m[-test_idx], Treat[-test_idx], tau, funcs_params = funcs_params)
+        preds <- funcs$predictor(fit, X_m, Treat, funcs_params = funcs_params)
+        ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], Y_m[fold_id == f1], Treat[fold_id == f1], tau, funcs_params = funcs_params)
+        ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], Y_m[fold_id == f2], Treat[fold_id == f2], tau, funcs_params = funcs_params)
       }
       
     }
     if (is.null(min_ho_errors) || sum(ho_errors) < sum(min_ho_errors)) {
       min_ho_errors <- ho_errors
+      best_tau <- tau
     }
-
+  }
   
-  #e_bar - f_bar in the notation of the paper. n_folds X 1 matrix
+  #e_bar - f_bar in the notation of the paper. n_folds X_m 1 matrix
   out_mat <- matrix(0, n_folds, 2)
   for(f1 in 1:(n_folds)) {
     test_idx <- which(fold_id == f1)
-    fit <- funcs$fitter(as.matrix(X[-test_idx, ]), Y[-test_idx], Treat[-test_idx], funcs_params = funcs_params)
-    preds <- funcs$predictor(fit, X[test_idx, ], Treat[test_idx], funcs_params = funcs_params)
-    e_out <- funcs$loss(preds, Y[test_idx])
+    fit <- funcs$fitter(as.matrix(X_m[-test_idx, ]), Y_m[-test_idx], Treat[-test_idx], best_tau, funcs_params = funcs_params)
+    preds <- funcs$predictor(fit, X_m[test_idx, ], Treat[test_idx], funcs_params = funcs_params)
+    e_out <- funcs$loss(preds, Y_m[test_idx], Treat[test_idx], best_tau)
     
     #loop over other folds
     e_bar_t <- c() # errors from internal CV
@@ -161,6 +169,6 @@ nested_cv_helper_BART <- function(X, Y, Treat, funcs, n_folds, funcs_params = NU
   }
   
   return(list("pivots" = out_mat,
-              "errs" = all_ho_errs
-              ))
+              "errs" = all_ho_errs,
+              "tau" = best_tau))
 }

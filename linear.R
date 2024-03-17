@@ -68,7 +68,7 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 tau.range = seq(1,10, by =1)
 nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 
 
 
@@ -141,5 +141,5 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 
 nested_cv(data.frame(DATA.cor), as.vector(Y), linear_regression_funs, 
-                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
+                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.1)
 
