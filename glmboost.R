@@ -65,7 +65,7 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 
 tau.range = seq(1,10, by =1)
-nested_cv_m(data.frame(train.set), as.vector(Y.train), as.vector(Treat.train), tau.range, glmboost_funs, 
+nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 
 
@@ -123,20 +123,20 @@ DATA.cor <- bind_cols('iqsb.36' = output, selected_data)
 
 
 set.seed(123)
-train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
-test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
+#train_idx <- sample(1:nrow(DATA.cor), round(.7 * nrow(DATA.cor)), replace = FALSE)
+#test_idx <- setdiff(1:nrow(DATA.cor), train_idx)
 
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-train.set <- DATA.cor[train_idx, ]
-Y.train <- Y[train_idx]
-test.set <- DATA.cor[test_idx, ]
-Y.test <-  Y[test_idx]
+#train.set <- DATA.cor[train_idx, ]
+#Y.train <- Y[train_idx]
+#test.set <- DATA.cor[test_idx, ]
+#Y.test <-  Y[test_idx]
 
 
-nested_cv(data.frame(train.set), as.vector(Y.train), glmboost_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
+nested_cv(data.frame(DATA.cor), as.vector(Y), glmboost_funs, 
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
 
