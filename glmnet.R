@@ -163,5 +163,5 @@ lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(DATA.cor), as.vector(Y), gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
-          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.01)
+          funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.5)
 
