@@ -172,7 +172,7 @@ DATA <- DATA[ , !(names(DATA) %in% c('Y', 'A'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA)
 library(bartCause)
 nested_cv_BART(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), bartC_funs, 
-               n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
+               n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.5)
 ######################
 ## reduced model
 ######################

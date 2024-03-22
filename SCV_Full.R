@@ -31,7 +31,7 @@
 #' }
 #'
 #' @export
-naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = .1,
+naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
                      trans = list(identity), funcs_params = NULL, fold_id = NULL) {
   
   if(is.null(fold_id)) {
@@ -40,9 +40,10 @@ naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = .1,
   }
   
   errors <- c()
-  gp_errors <- c()
+  gp_errors <- matrix(NA, nrow = n_folds, ncol = length(alpha))
+  
   for(k in 1:n_folds) {
-    fit <- funcs$fitter(X[fold_id !=k, ], Y[fold_id != k], funcs_params = funcs_params)
+    fit <- funcs$fitter(X[fold_id != k, ], Y[fold_id != k], funcs_params = funcs_params)
     y_hat <- funcs$predictor(fit, X[fold_id == k, ], funcs_params = funcs_params)
     error_k <- funcs$loss(y_hat, Y[fold_id == k], funcs_params = funcs_params)
     errors <- c(errors, error_k)
@@ -51,19 +52,28 @@ naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = .1,
     for(tran in trans) {
       temp_vec <- c(temp_vec, tran(mean(error_k)))
     }
-    gp_errors <- rbind(gp_errors, temp_vec)
+    gp_errors[k,] <- temp_vec
   }
   
-  return(list("err_hat" = mean(errors),
-              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
-              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
-              "raw_mean" = mean(errors),
-              "sd" = sd(errors),
-              "group_err_hat" = apply(gp_errors, 2, mean),
-              "group_sd" = apply(gp_errors, 2, sd),
-              "raw_errors" = errors,
-              "fold_id" = fold_id))
+  results <- list()
+  for (a in alpha) {
+    ci_lo <- mean(errors) - qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
+    ci_hi <- mean(errors) + qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
+    
+    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
+    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+  }
+  
+  results[["err_hat"]] <- mean(errors)
+  results[["raw_mean"]] <- mean(errors)
+  results[["sd"]] <- sd(errors)
+  results[["group_err_hat"]] <- apply(gp_errors, 2, mean)
+  results[["group_sd"]] <- apply(gp_errors, 2, sd)
+  results[["raw_errors"]] <- errors
+  results[["fold_id"]] <- fold_id
+  return(results)
 }
+
 ##############################################
 
 
@@ -105,73 +115,86 @@ naive_cv <- function(X, Y, funcs, n_folds = 10, alpha = .1,
 #' }
 #'
 #' @export
-nested_cv <- function(X, Y, funcs, reps = 50, n_folds = 10,  alpha = .1, bias_reps = NA,
-                      funcs_params = NULL, n_cores = 1, verbose = F) {
-  #estimate time required
-  if(verbose) {
+nested_cv <- function(X, Y, funcs, reps = 50, n_folds = 10, alpha = c(0.01, 0.05, 0.1, 0.25,0.5), bias_reps = NA,
+                      funcs_params = NULL, n_cores = 1, verbose = FALSE) {
+  
+  if (verbose) {
     t1 <- Sys.time()
-    temp <- nested_cv_helper(X, Y, funcs, n_folds,
-                                        funcs_params = funcs_params)
+    temp <- nested_cv_helper(X, Y, funcs, n_folds, funcs_params = funcs_params)
     t2 <- Sys.time()
     print(paste0("Estimated time required: ", (t2 - t1) * reps))
   }
   
-  #compute out-of-fold errors on SE scale
-  var_pivots <- c()
+  var_pivots <- matrix(NA, nrow = reps * n_folds, ncol = 2)
   gp_errs <- c()
   ho_errs <- c()
-  if(n_cores == 1){
-    raw <- lapply(1:reps, function(i){nested_cv_helper(X, Y, funcs, n_folds,
-                                                                  funcs_params = funcs_params)})
+  
+  if (n_cores == 1) {
+    raw <- lapply(1:reps, function(i) {
+      nested_cv_helper(X, Y, funcs, n_folds, funcs_params = funcs_params)
+    })
   } else {
-    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper(X, Y, funcs, n_folds,
-                                                                              funcs_params = funcs_params)},
-                              mc.cores = n_cores)
+    raw <- parallel::mclapply(1:reps, function(i) {
+      nested_cv_helper(X, Y, funcs, n_folds, funcs_params = funcs_params)
+    }, mc.cores = n_cores)
   }
-  for(i in 1:reps) {
+  
+  for (i in 1:reps) {
     temp <- raw[[i]]
-    var_pivots <- rbind(var_pivots, temp$pivots)
+    start_idx <- (i - 1) * n_folds + 1
+    end_idx <- i * n_folds
+    var_pivots[start_idx:end_idx, ] <- temp$pivots
     ho_errs <- c(ho_errs, temp$errs)
   }
   
-  
   n_sub <- floor(length(Y) * (n_folds - 1) / n_folds)
-  # look at the estimate of inflation after each repetition
   ugp_infl <- sqrt(max(0, mean(var_pivots[, 1]^2 - var_pivots[, 2]))) / (sd(ho_errs) / sqrt(n_sub))
   ugp_infl <- max(1, min(ugp_infl, sqrt(n_folds)))
   
-  #estimate of inflation at each time step
-  infl_est2 <- sqrt(pmax(0, sapply(1:reps, function(i){mean(var_pivots[1:(i*n_folds), 1]^2 - var_pivots[1:(i*n_folds), 2])}))) /
-    (sd(ho_errs) / sqrt(n_sub))
+  infl_est2 <- sqrt(pmax(0, sapply(1:reps, function(i) {
+    mean(var_pivots[1:(i * n_folds), 1]^2 - var_pivots[1:(i * n_folds), 2])
+  }))) / (sd(ho_errs) / sqrt(n_sub))
   
-  #bias correction
-  cv_means <- c() #estimated pred error from normal CV
+  cv_means <- c()
   bias_est <- 0
-  if(is.na(bias_reps)) {
-    bias_reps <- ceiling(reps / 5) #fewer reps for bias estimation
+  
+  if (is.na(bias_reps)) {
+    bias_reps <- ceiling(reps / 5)
   }
-  if(bias_reps == 0) {
+  
+  if (bias_reps == 0) {
     bias_est <- 0
-  }
-  else {
-    for(i in 1:bias_reps) {
+  } else {
+    for (i in 1:bias_reps) {
       temp <- naive_cv(X, Y, funcs, n_folds, funcs_params = funcs_params)
       cv_means <- c(cv_means, temp$err_hat)
     }
     
-    bias_est <- (mean(ho_errs) - mean(cv_means)) * (1 + ((n_folds - 2) / (n_folds ))^(1.5))
+    bias_est <- (mean(ho_errs) - mean(cv_means)) * (1 + ((n_folds - 2) / (n_folds))^ (1.5))
   }
-  pred_est <- mean(ho_errs) - bias_est #debiased estimate
   
-  list("sd_infl" = ugp_infl,
-       "err_hat" = pred_est,
-       "ci_lo" = pred_est - qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
-       "ci_hi" = pred_est + qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
-       "raw_mean" = mean(ho_errs),
-       "bias_est" = bias_est,
-       "sd" = sd(ho_errs),
-       "running_sd_infl" = infl_est2)
+  pred_est <- mean(ho_errs) - bias_est
+  
+  results <- list()
+  
+  for (a in alpha) {
+    ci_lo <- pred_est - qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+    ci_hi <- pred_est + qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+    
+    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
+    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+  }
+  
+  results[["sd_infl"]] <- ugp_infl
+  results[["err_hat"]] <- pred_est
+  results[["raw_mean"]] <- mean(ho_errs)
+  results[["bias_est"]] <- bias_est
+  results[["sd"]] <- sd(ho_errs)
+  results[["running_sd_infl"]] <- infl_est2
+  
+  return(results)
 }
+
 
 #' Internal helper for nested_cv
 #'
