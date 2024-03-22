@@ -1,6 +1,6 @@
 
 
-naive_cv_BART <- function(X, Y, Treat, funcs, n_folds, alpha = alpha,
+naive_cv_BART <- function(X, Y, Treat, funcs, n_folds, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
                        trans = list(identity), funcs_params = NULL, fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
@@ -26,22 +26,29 @@ naive_cv_BART <- function(X, Y, Treat, funcs, n_folds, alpha = alpha,
       min_gp_errors <- gp_errors
       best_errors <- errors
     }
-
-  return(list("err_hat" = mean(best_errors),
-              "ci_lo" = mean(best_errors) - qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y)),
-              "ci_hi" = mean(best_errors) + qnorm(1-alpha/2) * sd(best_errors) / sqrt(length(Y)),
-              "raw_mean" = mean(best_errors),
-              "sd" = sd(best_errors),
-              "group_err_hat" = apply(min_gp_errors, 2, mean),
-              "group_sd" = apply(min_gp_errors, 2, sd),
-              "raw_errors" = best_errors,
-              "fold_id" = fold_id))
+  results <- list()
+  for (a in alpha) {
+    ci_lo <- mean(errors) - qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
+    ci_hi <- mean(errors) + qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
+    
+    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
+    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+  }
+  
+  results[["err_hat"]] <- mean(errors)
+  results[["raw_mean"]] <- mean(errors)
+  results[["sd"]] <- sd(errors)
+  results[["group_err_hat"]] <- apply(gp_errors, 2, mean)
+  results[["group_sd"]] <- apply(gp_errors, 2, sd)
+  results[["raw_errors"]] <- errors
+  results[["fold_id"]] <- fold_id
+  return(results)
 }
 
 
 # nested CV
 
-nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, bias_reps = NA,
+nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
                         funcs_params = NULL, n_cores = 1, verbose = F) {
   #estimate time required
   if(verbose) {
@@ -99,14 +106,24 @@ nested_cv_BART <- function(X, Y, Treat,  funcs, reps, n_folds,  alpha = alpha, b
   }
   pred_est <- mean(ho_errs) - bias_est #debiased estimate
   
-  list("sd_infl" = ugp_infl,
-       "err_hat" = pred_est,
-       "ci_lo" = pred_est - qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
-       "ci_hi" = pred_est + qnorm(1-alpha/2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl,
-       "raw_mean" = mean(ho_errs),
-       "bias_est" = bias_est,
-       "sd" = sd(ho_errs),
-       "running_sd_infl" = infl_est2)
+  results <- list()
+  
+  for (a in alpha) {
+    ci_lo <- pred_est - qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+    ci_hi <- pred_est + qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+    
+    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
+    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+  }
+  
+  results[["sd_infl"]] <- ugp_infl
+  results[["err_hat"]] <- pred_est
+  results[["raw_mean"]] <- mean(ho_errs)
+  results[["bias_est"]] <- bias_est
+  results[["sd"]] <- sd(ho_errs)
+  results[["running_sd_infl"]] <- infl_est2
+  
+  return(results)
 }
 
 nested_cv_helper_BART <- function(X, Y, Treat, funcs, n_folds, funcs_params = NULL) {
