@@ -55,6 +55,8 @@ set.seed(123)
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
 Treat <- DATA.cor$treat
+tau <- mean(Treat == 1) - mean(Treat == 0)
+tau.range <- seq(-4*tau, 4*tau, length.out = 9)
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36', 'treat'))]
 
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
@@ -66,7 +68,6 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 #Y.test <-  Y[test_idx]
 #Treat.test <- treat[test_idx]
 
-tau.range = seq(1,10, by =1)
 nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, linear_regression_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
 
@@ -131,6 +132,9 @@ set.seed(123)
 
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
+Treat <- DATA.cor$treat
+tau <- mean(Treat == 1) - mean(Treat == 0)
+tau.range <- seq(-4*tau, 4*tau, length.out = 9)
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
@@ -141,5 +145,5 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 
 nested_cv(data.frame(DATA.cor), as.vector(Y), linear_regression_funs, 
-                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.1)
+                    n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 

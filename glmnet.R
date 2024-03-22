@@ -56,6 +56,8 @@ set.seed(123)
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
 Treat <- DATA.cor$treat
+tau <- mean(Treat == 1) - mean(Treat == 0)
+tau.range <- seq(-4*tau, 4*tau, length.out = 9)
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36', 'treat'))]
 
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
@@ -75,7 +77,7 @@ lambdas <- fit$lambda
 best_lam <- match(fit$lambda.1se, lambdas) #selected value of lambda
 lambda <- lambdas[1:best_lam]
 
-tau.range = seq(1,10, by =1)
+
 nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, gaussian_lasso_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, 
           funcs_params = list("lambdas" = lambdas, "best_lam" = best_lam), verbose = T, alpha = 0.5)
@@ -144,6 +146,9 @@ set.seed(123)
 
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor$iqsb.36
+Treat <- DATA.cor$treat
+tau <- mean(Treat == 1) - mean(Treat == 0)
+tau.range <- seq(-4*tau, 4*tau, length.out = 9)
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
