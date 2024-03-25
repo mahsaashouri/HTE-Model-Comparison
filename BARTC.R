@@ -72,7 +72,7 @@ n_folds <- 6
 nested_cv_reps <- 5000 #average over many random splits
 
 nested_cv_BART(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), bartC_funs, 
-               n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
+               n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 #nested_cv_helper_BART(data.frame(DATA), as.vector(Y), as.vector(Treat), bartC_funs, 
 #                 n_folds = n_folds)
 #naive_cv_BART(data.frame(DATA), as.vector(Y), as.vector(Treat),bartC_funs, n_folds = n_folds, alpha = 0.5,
@@ -144,5 +144,5 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 #Treat.test <- treat[test_idx]
 
 nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, bartC_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.01)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 
