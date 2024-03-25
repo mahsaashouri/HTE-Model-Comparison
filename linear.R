@@ -69,7 +69,7 @@ DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 #Treat.test <- treat[test_idx]
 
 nested_cv_m(data.frame(DATA.cor), as.vector(Y), as.vector(Treat), tau.range, linear_regression_funs, 
-            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = 0.05)
+            n_folds = n_folds, reps  = nested_cv_reps, verbose = T, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5))
 
 
 
