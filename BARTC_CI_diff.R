@@ -48,7 +48,7 @@ bartC_funs <- list(fitter = fitter_bartc,
 
 
 n_folds <- 6
-nested_cv_reps <- 10 #average over many random splits
+nested_cv_reps <- 5000 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
