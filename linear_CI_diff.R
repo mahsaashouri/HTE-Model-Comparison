@@ -1,11 +1,14 @@
-squared_loss <- function(y1, y2, y3, tau, Trt, funcs_params = NA) {
+
+library(dplyr)
+
+squared_loss <- function(y1, y2, y3, tau, Trt) {
    ## y1 - full model
    ## y2 - reduced model 
    ## y3 - outcome
    (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
 
-fitter_lm <- function(X, X0, Y, Trt, tau.seq, idx = NA, funcs_params = NA) {
+fitter_lm <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
@@ -27,7 +30,7 @@ fitter_lm <- function(X, X0, Y, Trt, tau.seq, idx = NA, funcs_params = NA) {
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
-predictor_lm <- function(fit, X_new, funcs_params = NA) {
+predictor_lm <- function(fit, X_new) {
   predict(fit, newdata = X_new)
 }
 

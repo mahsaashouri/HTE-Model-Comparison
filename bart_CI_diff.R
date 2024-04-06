@@ -1,5 +1,5 @@
 
-library(mboost)
+library(BART)
 library(dplyr)
 
 squared_loss <- function(y1, y2, y3, tau, Trt) {
@@ -9,33 +9,34 @@ squared_loss <- function(y1, y2, y3, tau, Trt) {
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
 
-fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
+fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
-  fit <- glmboost(x= as.matrix(X[idx, ]), y=Y[idx],family = Gaussian())
+
+  fit <- wbart(X[idx, ], Y[idx], ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
   
   mse <- rep(NA, length(tau.seq))
   for(k in 1:length(tau.seq)) {
-    glmboost_tmp <- glmboost(x= as.matrix(X0[idx, ]), y=Y[idx]-(tau.seq[k]*Trt[idx]),family = Gaussian())
-    mse[k] <- mean((Y[idx]-(tau.seq[k]*Trt[idx]) - glmboost_tmp$fitted())^2)
+    lm_tmp <- wbart(X0[idx, ], Y[idx] - tau.seq[k]*Trt, ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
+    mse[k] <- mean(((Y[idx] - tau.seq[k]*Trt) - lm_tmp$yhat.train)^2)
   }
   tau.star <- tau.seq[which.min(mse)]
-  
-  fit_reduced <- glmboost(x= as.matrix(X0[idx, ]), y=Y[idx]-(tau.star*Trt[idx]),family = Gaussian())
+
+  fit_reduced <- wbart(X0[idx, ], Y[idx] - tau.star*Trt, ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
-predictor_glmboost <- function(fit, X_new) {
-  as.numeric(predict(fit, newdata = as.matrix(X_new)))
+predictor_bart <- function(fit, X_new) {
+  colMeans(predict(fit, newdata = X_new))
 }
 
-glmboost_funs <- list(fitter = fitter_glmboost,
-                      predictor = predictor_glmboost,
-                      loss = squared_loss,
-                      name = "glmboost")
+bart_funs <- list(fitter = fitter_bart,
+                               predictor = predictor_bart,
+                               loss = squared_loss,
+                               name = "bart")
 n_folds <- 6
 nested_cv_reps <- 5000 #average over many random splits
 
@@ -77,5 +78,5 @@ DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 
-nested_cv(data.frame(DATA.cor), data.frame(DATA.cor.reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, glmboost_funs, 
+nested_cv(data.frame(DATA.cor), data.frame(DATA.cor.reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
