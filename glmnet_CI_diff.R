@@ -1,5 +1,6 @@
 
 library(glmnet)
+library(dplyr)
 
 squared_loss <- function(y1, y2, y3, tau, Trt) {
   ## y1 - full model
@@ -8,31 +9,29 @@ squared_loss <- function(y1, y2, y3, tau, Trt) {
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
 
-fitter_glmnet <- function(X, X0, Y, Trt, tau.seq, idx = NA, funcs_params = NA) {
+fitter_glmnet <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
-  fit <- glmnet(X[idx, ], Y[idx], family = "gaussian", lambda = funcs_params$lambdas) 
-  
+  fit <- cv.glmnet(X[idx, ], Y[idx], family = "gaussian")
+
   mse <- rep(NA, length(tau.seq))
   for(k in 1:length(tau.seq)) {
-    glmnet_tmp <- glmnet(X0[idx, ], Y[idx]-(tau.seq[k]*Treat[idx]), family = "gaussian", funcs_params$lambdas) 
-    mse[k] <- mean(((Y[idx]-(tau.seq[k]*Treat[idx])) - glmnet_tmp$fitted)^2)
+    glmnet_tmp <- cv.glmnet(X0[idx, ], Y[idx]-(tau.seq[k]*Treat[idx]), family = "gaussian") 
+    mse[k] <- mean(((Y[idx]-(tau.seq[k]*Treat[idx])) - predict(glmnet_tmp, X0[idx, ]))^2)
   }
   tau.star <- tau.seq[which.min(mse)]
   
 
   
-  fit_reduced <- glmnet(X0[idx, ], Y[idx]-(tau.star*Treat[idx]), family = "gaussian", lambda = funcs_params$lambdas) 
+  fit_reduced <- cv.glmnet(X0[idx, ], Y[idx]-(tau.star*Treat[idx]), family = "gaussian") 
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
-predictor_glmnet <- function(fit, X_new, funcs_params = NA) {
-  beta_hat <- fit$beta[, funcs_params$best_lam] 
-  a0_hat <- fit$a0[funcs_params$best_lam]
-  preds <- (as.matrix(X_new) %*% beta_hat + a0_hat)
+predictor_glmnet <- function(fit, X_new) {
+  preds <- predict(fit, as.matrix(X_new))
   preds
 }
 
@@ -81,15 +80,6 @@ Y <- DATA.cor$iqsb.36
 DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
-fit <- cv.glmnet(as.matrix(DATA.cor.reduced), Y, Treat, family = "gaussian")
-lambdas <- fit$lambda
-best_lam <- match(fit$lambda.1se, lambdas) #selected value of lambda
-lambda <- lambdas[1:best_lam]
-
-fit <- cv.glmnet(as.matrix(DATA.cor), Y, family = "gaussian")
-lambdas <- fit$lambda
-best_lam <- match(fit$lambda.1se, lambdas) #selected value of lambda
-lambda <- lambdas[1:best_lam]
 
 nested_cv(data.frame(DATA.cor), data.frame(DATA.cor.reduced), as.vector(Y), as.vector(Treat), tau.seq = tau.range, gaussian_lasso_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, verbose = T)

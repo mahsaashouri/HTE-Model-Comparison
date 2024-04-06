@@ -1,7 +1,7 @@
 
 
 naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
-                       trans = list(identity), funcs_params = NULL, fold_id = NULL) {
+                       trans = list(identity), fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
     fold_id <- (1:nrow(X)) %% n_folds + 1
@@ -11,10 +11,10 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
   errors <- c()
   gp_errors <- c()
     for(k in 1:n_folds) {
-      fit <- funcs$fitter(X[fold_id !=k, ], X0[fold_id !=k, ], Y[fold_id != k], Trt[fold_id != k], tau.seq, funcs_params = funcs_params)
-      Y_hat <- funcs$predictor(fit$full, X[fold_id == k, ], funcs_params = funcs_params)
-      Y_hat_reduced <- funcs$predictor(fit$reduced, X0[fold_id == k, ], funcs_params = funcs_params)
-      error_k <- funcs$loss(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau, funcs_params = funcs_params)
+      fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k], Trt[fold_id != k], tau.seq)
+      Y_hat <- funcs$predictor(fit$full, X[fold_id == k, ])
+      Y_hat_reduced <- funcs$predictor(fit$reduced, X0[fold_id == k, ])
+      error_k <- funcs$loss(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
       errors <- c(errors, error_k)
       
       temp_vec <- c()
@@ -46,13 +46,11 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
 
 # nested CV
 
-nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA,
-                        funcs_params = NULL, n_cores = 1, verbose = F) {
+nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0.01, 0.05, 0.1, 0.25, 0.5), bias_reps = NA, n_cores = 1, verbose = F) {
   #estimate time required
   if(verbose) {
     t1 <- Sys.time()
-    temp <- nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds,
-                               funcs_params = funcs_params)
+    temp <- nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds)
     t2 <- Sys.time()
     print(paste0("Estimated time required: ", (t2 - t1) * reps))
   }
@@ -63,11 +61,9 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   ho_errs <- c()
   tau <- c()
   if(n_cores == 1){
-    raw <- lapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds,
-                                                         funcs_params = funcs_params)})
+    raw <- lapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds)})
   } else {
-    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds,
-                                                                     funcs_params = funcs_params)},
+    raw <- parallel::mclapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds)},
                               mc.cores = n_cores)
   }
   for(i in 1:reps) {
@@ -98,7 +94,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   }
   else {
     for(i in 1:bias_reps) {
-      temp <- naive_cv(X, X0, Y, Trt, tau.seq, funcs, n_folds, funcs_params = funcs_params, alpha = alpha)
+      temp <- naive_cv(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = alpha)
       cv_means <- c(cv_means, temp$err_hat)
     }
     
@@ -126,7 +122,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   return(results)
 }
 
-nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, funcs_params = NULL) {
+nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
   fold_id <- 1:nrow(X) %% n_folds + 1
   fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
   fold_id <- c(fold_id, rep(0, nrow(X) %% n_folds))
@@ -138,11 +134,11 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, funcs_param
     for(f1 in 1:(n_folds - 1)) {
       for(f2 in (f1+1):n_folds) {
         test_idx <- c(which(fold_id == f1), which(fold_id == f2))
-        fit <- funcs$fitter(as.matrix(X[-test_idx, ]), as.matrix(X0[-test_idx, ]), Y[-test_idx], Trt[-test_idx], tau.seq, funcs_params = funcs_params)
-        preds <- funcs$predictor(fit$full, X, funcs_params = funcs_params)
-        preds_reduced <- funcs$predictor(fit$reduced, X0, funcs_params = funcs_params)
-        ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau, funcs_params = funcs_params)
-        ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau, funcs_params = funcs_params)
+        fit <- funcs$fitter(as.matrix(X[-test_idx, ]), as.matrix(X0[-test_idx, ]), Y[-test_idx], Trt[-test_idx], tau.seq)
+        preds <- funcs$predictor(fit$full, X)
+        preds_reduced <- funcs$predictor(fit$reduced, X0)
+        ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau)
+        ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau)
       }
       
     }
@@ -151,9 +147,9 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, funcs_param
   out_mat <- matrix(0, n_folds, 2)
   for(f1 in 1:(n_folds)) {
     test_idx <- which(fold_id == f1)
-    fit <- funcs$fitter(as.matrix(X[-test_idx, ]), as.matrix(X0[-test_idx, ]), Y[-test_idx], Trt[-test_idx], tau.seq, funcs_params = funcs_params)
-    preds <- funcs$predictor(fit$full, X[test_idx, ], funcs_params = funcs_params)
-    preds_reduced <- funcs$predictor(fit$reduced, X0[test_idx, ], funcs_params = funcs_params)
+    fit <- funcs$fitter(as.matrix(X[-test_idx, ]), as.matrix(X0[-test_idx, ]), Y[-test_idx], Trt[-test_idx], tau.seq)
+    preds <- funcs$predictor(fit$full, X[test_idx, ])
+    preds_reduced <- funcs$predictor(fit$reduced, X0[test_idx, ])
     e_out <- funcs$loss(preds, preds_reduced, Y[test_idx], Trt[test_idx], fit$tau)
     
     #loop over other folds
