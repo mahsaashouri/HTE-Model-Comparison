@@ -14,18 +14,18 @@ fitter_glmnet <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
-  fit <- cv.glmnet(X[idx, ], Y[idx], family = "gaussian")
+  fit <- cv.glmnet(X[idx, ], Y[idx], family = "gaussian", nfolds = 5)
 
   mse <- rep(NA, length(tau.seq))
   for(k in 1:length(tau.seq)) {
-    glmnet_tmp <- cv.glmnet(X0[idx, ], Y[idx]-(tau.seq[k]*Treat[idx]), family = "gaussian") 
+    glmnet_tmp <- cv.glmnet(X0[idx, ], Y[idx]-(tau.seq[k]*Treat[idx]), family = "gaussian", nfolds = 5) 
     mse[k] <- mean(((Y[idx]-(tau.seq[k]*Treat[idx])) - predict(glmnet_tmp, X0[idx, ]))^2)
   }
   tau.star <- tau.seq[which.min(mse)]
   
 
   
-  fit_reduced <- cv.glmnet(X0[idx, ], Y[idx]-(tau.star*Treat[idx]), family = "gaussian") 
+  fit_reduced <- cv.glmnet(X0[idx, ], Y[idx]-(tau.star*Treat[idx]), family = "gaussian", nfolds = 5) 
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
