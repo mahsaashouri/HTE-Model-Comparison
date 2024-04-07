@@ -15,16 +15,16 @@ fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
     idx <- 1:nrow(X)
   }
 
-  fit <- wbart(X[idx, ], Y[idx], ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
+  fit <- wbart(X[idx, ], Y[idx], ntree=50L, numcut=10L, ndpost=50L, nskip=10L)
   
   mse <- rep(NA, length(tau.seq))
   for(k in 1:length(tau.seq)) {
-    lm_tmp <- wbart(X0[idx, ], Y[idx] - tau.seq[k]*Trt, ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
+    lm_tmp <- wbart(X0[idx, ], Y[idx] - tau.seq[k]*Trt, ntree=50L, numcut=10L, ndpost=50L, nskip=10L)
     mse[k] <- mean(((Y[idx] - tau.seq[k]*Trt) - lm_tmp$yhat.train)^2)
   }
   tau.star <- tau.seq[which.min(mse)]
 
-  fit_reduced <- wbart(X0[idx, ], Y[idx] - tau.star*Trt, ntree=100L, numcut=50L, ndpost=100L, nskip=50L)
+  fit_reduced <- wbart(X0[idx, ], Y[idx] - tau.star*Trt, ntree=50L, numcut=10L, ndpost=50L, nskip=10L)
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
@@ -38,7 +38,7 @@ bart_funs <- list(fitter = fitter_bart,
                                loss = squared_loss,
                                name = "bart")
 n_folds <- 6
-nested_cv_reps <- 5000 #average over many random splits
+nested_cv_reps <- 500 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
