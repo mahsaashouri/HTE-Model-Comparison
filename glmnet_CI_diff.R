@@ -35,10 +35,10 @@ predictor_glmnet <- function(fit, X_new) {
   preds
 }
 
-gaussian_lasso_funs <- list(fitter = fitter_glmnet,
+glmnet_funs <- list(fitter = fitter_glmnet,
                             predictor = predictor_glmnet,
                             loss = squared_loss,
-                            name = "gaussian_lasso")
+                            name = "glmnet")
 
 n_folds <- 6
 nested_cv_reps <- 5000 #average over many random splits
@@ -81,5 +81,5 @@ DATA.cor <- DATA.cor[ , !(names(DATA.cor) %in% c('iqsb.36'))]
 DATA.cor <- model.matrix(Y~.-1, data = DATA.cor)
 
 
-nested_cv(data.frame(DATA.cor), data.frame(DATA.cor.reduced), as.vector(Y), as.vector(Treat), tau.seq = tau.range, gaussian_lasso_funs, 
+nested_cv(data.frame(DATA.cor), data.frame(DATA.cor.reduced), as.vector(Y), as.vector(Treat), tau.seq = tau.range, glmnet_funs, 
             n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
