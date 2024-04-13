@@ -8,7 +8,7 @@ library(dplyr)
 set.seed(123)
 
 # Define the number of observations
-n <- 500
+n <- 100
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)
@@ -189,7 +189,7 @@ DATA_full <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, '
 DATA_reduced <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
 
 n_folds <- 10
-nested_cv_reps <- 500
+nested_cv_reps <- 1000
 
 Y <- DATA_full$Y
 DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
