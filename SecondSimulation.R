@@ -50,3 +50,34 @@ tau <- function(choice, x) {
   }
 }
 
+# Generate the dataset
+set.seed(123) 
+
+n <- 100  # Number of observations
+p <- 10   # Number of features
+
+# Generate x
+x <- matrix(0, nrow = n, ncol = p)
+for (j in 1:p) {
+  if (j %% 2 == 0) {
+    x[, j] <- rnorm(n, 0, 1)  # Normal(0, 1) if j is even
+  } else {
+    x[, j] <- rbinom(n, 1, 0.5)  # Bernoulli(0.5) if j is odd
+  }
+}
+
+# Generate treatment indicator A 
+A <- rbinom(n, 1, 0.5)
+
+# Generate outcome variable Y
+mu_new <- mu(4, x) 
+tau_new <- tau(3, x) 
+
+Y <- numeric(n)
+for (i in 1:n) {
+  Y[i] <- mu_new[i] + A[i] * tau_new[i] + rnorm(1)  
+}
+
+data <- data.frame(Y = Y, A = A, x)
+
+
