@@ -2,7 +2,7 @@
 library(BART)
 library(dplyr)
 
-squared_loss <- function(y1, y2, y3, tau, Trt) {
+squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y1 - full model
   ## y2 - reduced model 
   ## y3 - outcome

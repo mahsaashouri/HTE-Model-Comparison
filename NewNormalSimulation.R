@@ -32,7 +32,7 @@ Y <- beta0 + beta1 * x1 + beta2 * x2 + beta3 * A + beta4 * A * x1 + beta5 * A * 
 
 ## linear
 
-squared_loss <- function(y1, y2, y3, tau, Trt) {
+squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y1 - full model
   ## y2 - reduced model 
   ## y3 - outcome
@@ -71,7 +71,7 @@ linear_regression_funs <- list(fitter = fitter_lm,
                                name = "linear_regression")
 ## glmnet
 
-squared_loss <- function(y1, y2, y3, tau, Trt) {
+squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y1 - full model
   ## y2 - reduced model 
   ## y3 - outcome
@@ -111,7 +111,7 @@ glmnet_funs <- list(fitter = fitter_glmnet,
 
 ## glmboost
 
-squared_loss <- function(y1, y2, y3, tau, Trt) {
+squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y1 - full model
   ## y2 - reduced model 
   ## y3 - outcome
@@ -148,7 +148,7 @@ glmboost_funs <- list(fitter = fitter_glmboost,
 
 ## bart
 
-squared_loss <- function(y1, y2, y3, tau, Trt) {
+squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y1 - full model
   ## y2 - reduced model 
   ## y3 - outcome
