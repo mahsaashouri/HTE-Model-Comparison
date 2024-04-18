@@ -27,8 +27,6 @@ mu <- function(choice, x){
   else if (choice == 3) 
     return(f7(x))
   else if (choice == 4) 
-    return(f6(x))
-  else if (choice == 5) 
     return(f8(x))
   else
     stop("Invalid choice for mu")
