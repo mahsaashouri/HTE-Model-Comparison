@@ -1,6 +1,6 @@
 
+set.seed(123)
 # Define mu and tau 
-
 f1 <- function(x) {
   return((x[, 2]*x[, 4]*x[, 6]) + (2*x[, 2]*x[, 4]*(1-x[, 6])) + (3*x[, 2]*(1-x[, 4])*x[, 6]) + (4*x[, 2]*(1-x[, 4])*(1-x[, 4])) + (5*(1-x[, 2])*x[, 4]*x[, 6]) + 
     (6*(1-x[, 2])*x[, 4]*(1-x[, 6])) + (7*(1-x[, 2])*(1-x[, 4])*x[, 6]) + (8*(1-x[, 2])*(1-x[, 4])*(1-x[, 6])))
@@ -63,7 +63,7 @@ for (j in 1:p) {
     x[, j] <- rbinom(n, 1, 0.5)  # Bernoulli(0.5) if j is odd
   }
 }
-
+colnames(x) <-paste0("X", 1:p) 
 # Generate treatment indicator A 
 A <- rbinom(n, 1, 0.5)
 
@@ -76,6 +76,13 @@ for (i in 1:n) {
   Y[i] <- mu_new[i] + A[i] * tau_new[i] + rnorm(1)  
 }
 
-data <- data.frame(Y = Y, A = A, x)
+x.t <- matrix(NA, nrow = nrow(x), ncol = ncol(x))
+for(k in 1:ncol(x)){
+  x.t[,k] <- x[,k]*A
+}
+colnames(x.t) <- paste0(colnames(x), ".t")
+
+DATA_full <- data.frame(Y = Y, A = A, x, x.t)
+DATA_reduced <- data.frame(Y = Y, A = A, x)
 
 
