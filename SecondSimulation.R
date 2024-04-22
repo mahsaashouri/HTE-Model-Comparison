@@ -86,7 +86,7 @@ DATA_full <- data.frame(Y = Y, A = A, x, x.t)
 DATA_reduced <- data.frame(Y = Y, A = A, x)
 
 n_folds <- 10
-nested_cv_reps <- 1000
+nested_cv_reps <- 10
 
 Y <- DATA_full$Y
 DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
@@ -106,6 +106,16 @@ squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y2 - reduced model 
   ## y3 - outcome
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
+}
+
+
+mse <- function(y1, y2, y3, Trt, tau) {
+  ## y1 - full model
+  ## y2 - reduced model 
+  ## y3 - outcome
+  mse_full <- mean((y1 - y3)^2)
+  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
+  return(list(full = mse_full, reduced = mse_reduced))
 }
 
 fitter_lm <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
@@ -137,6 +147,7 @@ predictor_lm <- function(fit, X_new) {
 linear_regression_funs <- list(fitter = fitter_lm,
                                predictor = predictor_lm,
                                loss = squared_loss,
+                               mse = mse,
                                name = "linear_regression")
 ## glmnet
 
@@ -146,6 +157,16 @@ squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y3 - outcome
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
+
+mse <- function(y1, y2, y3, Trt, tau) {
+  ## y1 - full model
+  ## y2 - reduced model 
+  ## y3 - outcome
+  mse_full <- mean((y1 - y3)^2)
+  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
+  return(list(full = mse_full, reduced = mse_reduced))
+}
+
 
 fitter_glmnet <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
@@ -176,6 +197,7 @@ predictor_glmnet <- function(fit, X_new) {
 glmnet_funs <- list(fitter = fitter_glmnet,
                     predictor = predictor_glmnet,
                     loss = squared_loss,
+                    mse = mse,
                     name = "glmnet")
 
 ## glmboost
@@ -185,6 +207,15 @@ squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y2 - reduced model 
   ## y3 - outcome
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
+}
+
+mse <- function(y1, y2, y3, Trt, tau) {
+  ## y1 - full model
+  ## y2 - reduced model 
+  ## y3 - outcome
+  mse_full <- mean((y1 - y3)^2)
+  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
+  return(list(full = mse_full, reduced = mse_reduced))
 }
 
 fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
@@ -213,6 +244,7 @@ predictor_glmboost <- function(fit, X_new) {
 glmboost_funs <- list(fitter = fitter_glmboost,
                       predictor = predictor_glmboost,
                       loss = squared_loss,
+                      mse = mse,
                       name = "glmboost")
 
 ## bart
@@ -223,6 +255,16 @@ squared_loss <- function(y1, y2, y3, Trt, tau) {
   ## y3 - outcome
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
+
+mse <- function(y1, y2, y3, Trt, tau) {
+  ## y1 - full model
+  ## y2 - reduced model 
+  ## y3 - outcome
+  mse_full <- mean((y1 - y3)^2)
+  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
+  return(list(full = mse_full, reduced = mse_reduced))
+}
+
 
 fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
@@ -251,6 +293,7 @@ predictor_bart <- function(fit, X_new) {
 bart_funs <- list(fitter = fitter_bart,
                   predictor = predictor_bart,
                   loss = squared_loss,
+                  mse = mse,
                   name = "bart")
 
 ## linear

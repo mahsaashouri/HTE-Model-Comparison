@@ -9,13 +9,18 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
   }
   
   errors <- c()
+  mse_full <- c()
+  mse_reduced <- c()
   gp_errors <- c()
     for(k in 1:n_folds) {
       fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k], Trt[fold_id != k], tau.seq)
       Y_hat <- funcs$predictor(fit$full, X[fold_id == k, ])
       Y_hat_reduced <- funcs$predictor(fit$reduced, X0[fold_id == k, ])
       error_k <- funcs$loss(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
+      mse_k <- funcs$mse(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
       errors <- c(errors, error_k)
+      mse_full <- c(mse_full, mse_k$full)
+      mse_reduced <- c(mse_reduced, mse_k$reduced)
       
       temp_vec <- c()
       for(tran in trans) {
@@ -33,6 +38,8 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
     results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
   }
   
+  results[["mse_full"]] <- mean(mse_full)
+  results[["mse_reduced"]] <- mean(mse_reduced)
   results[["err_hat"]] <- mean(errors)
   results[["raw_mean"]] <- mean(errors)
   results[["sd"]] <- sd(errors)
@@ -59,7 +66,9 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   var_pivots <- c()
   gp_errs <- c()
   ho_errs <- c()
-  tau <- c()
+  mse_full <- c()
+  mse_reduced <- c()
+  
   if(n_cores == 1){
     raw <- lapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.seq, funcs, n_folds)})
   } else {
@@ -70,7 +79,8 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
     temp <- raw[[i]]
     var_pivots <- rbind(var_pivots, temp$pivots)
     ho_errs <- c(ho_errs, temp$errs)
-    #tau <- c(tau, temp$tau)
+    mse_full <- c(mse_full, temp$mse_full)
+    mse_reduced <- c(mse_reduced, temp$mse_reduced)
   }
   
   ########
@@ -118,6 +128,8 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   results[["bias_est"]] <- bias_est
   results[["sd"]] <- sd(ho_errs)
   results[["running_sd_infl"]] <- infl_est2
+  results[["mse_full"]] <- mse_full
+  results[["mse_reduced"]] <- mse_reduced
   
   return(results)
 }
@@ -129,6 +141,8 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
   
   #nested CV model fitting
   ho_errors <- array(0, dim = c(n_folds, n_folds, nrow(X) %/% n_folds))
+  ho_mse_full <- matrix(0, ncol = n_folds, nrow = n_folds)
+  ho_mse_reduced <- matrix(0, ncol = n_folds, nrow = n_folds)
   #^ entry i, j is error on fold i,
   # when folds i & j are not used for model fitting.
     for(f1 in 1:(n_folds - 1)) {
@@ -139,6 +153,10 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
         preds_reduced <- funcs$predictor(fit$reduced, X0)
         ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau)
         ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau)
+        mse_full_reduced12 <- funcs$mse(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau)
+        mse_full_reduced21 <- funcs$mse(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau)
+        ho_mse_full[f1, f2] <- mse_full_reduced12$full; ho_mse_full[f2, f1] <- mse_full_reduced21$full
+        ho_mse_reduced[f1, f2] <- mse_full_reduced12$reduced;  ho_mse_reduced[f2, f1] <- mse_full_reduced21$reduced
       }
       
     }
@@ -171,6 +189,8 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
   }
   
   return(list("pivots" = out_mat,
-              "errs" = all_ho_errs
+              "errs" = all_ho_errs,
+              "mse_full" = mean(as.vector(ho_mse_full)),
+              "mse_reduced" = mean(as.vector(ho_mse_reduced))
               ))
 }
