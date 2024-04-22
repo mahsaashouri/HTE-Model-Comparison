@@ -34,9 +34,9 @@ mu <- function(choice, x){
 
 tau <- function(choice, x) {
   if (choice == 1) {
-    return(0)
+    return(rep(0, n))
   } else if (choice == 2) {
-    return(1)
+    return(rep(1, n))
   } else if (choice == 3) {
     return(2 + 0.1/(1 + exp(-x[, 2])))
   } else if (choice == 4) {
@@ -47,9 +47,6 @@ tau <- function(choice, x) {
     stop("Invalid choice for tau")
   }
 }
-
-# Generate the dataset
-set.seed(123) 
 
 n <- 100  # Number of observations
 p <- 10   # Number of features

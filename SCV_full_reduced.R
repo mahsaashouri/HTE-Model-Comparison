@@ -32,17 +32,17 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
   results <- list()
   zero_between_bounds <- numeric(length(alpha))
   
-  for (a in alpha) {
-    ci_lo <- mean(errors) - qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
-    ci_hi <- mean(errors) + qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
+  for (a in 1:length(alpha)) {
+    ci_lo <- mean(errors) - qnorm(1 - alpha[a] / 2) * sd(errors) / sqrt(length(Y))
+    ci_hi <- mean(errors) + qnorm(1 - alpha[a] / 2) * sd(errors) / sqrt(length(Y))
     
-    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
-    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+    results[[paste0("ci_lo_alpha_", alpha[a])]] <- ci_lo
+    results[[paste0("ci_hi_alpha_", alpha[a])]] <- ci_hi
     # Check if zero is between ci_lo and ci_hi
     if (ci_lo <= 0 && ci_hi >= 0)
-      zero_between_bounds[i] <- 1  
+      zero_between_bounds[a] <- 1  
     else
-      zero_between_bounds[i] <- 0  
+      zero_between_bounds[a] <- 0  
   }
   
 
@@ -124,18 +124,18 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   results <- list()
   zero_between_bounds <- numeric(length(alpha))
   
-  for (a in alpha) {
-    ci_lo <- pred_est - qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
-    ci_hi <- pred_est + qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+  for (a in 1:length(alpha)) {
+    ci_lo <- pred_est - qnorm(1 - alpha[a] / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+    ci_hi <- pred_est + qnorm(1 -  alpha[a] / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
     
-    results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
-    results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+    results[[paste0("ci_lo_alpha_",  alpha[a])]] <- ci_lo
+    results[[paste0("ci_hi_alpha_",  alpha[a])]] <- ci_hi
     
     # Check if zero is between ci_lo and ci_hi
     if (ci_lo <= 0 && ci_hi >= 0)
-      zero_between_bounds[i] <- 1  
+      zero_between_bounds[a] <- 1  
     else
-      zero_between_bounds[i] <- 0  
+      zero_between_bounds[a] <- 0  
   }
   
   results[["sd_infl"]] <- ugp_infl
