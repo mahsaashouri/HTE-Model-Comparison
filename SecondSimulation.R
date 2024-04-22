@@ -86,7 +86,7 @@ DATA_full <- data.frame(Y = Y, A = A, x, x.t)
 DATA_reduced <- data.frame(Y = Y, A = A, x)
 
 n_folds <- 10
-nested_cv_reps <- 10
+nested_cv_reps <- 1000
 
 Y <- DATA_full$Y
 DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]

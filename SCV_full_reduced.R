@@ -30,16 +30,22 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
     }
   
   results <- list()
+  zero_between_bounds <- numeric(length(alpha))
+  
   for (a in alpha) {
     ci_lo <- mean(errors) - qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
     ci_hi <- mean(errors) + qnorm(1 - a / 2) * sd(errors) / sqrt(length(Y))
     
     results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
     results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+    # Check if zero is between ci_lo and ci_hi
+    if (ci_lo <= 0 && ci_hi >= 0)
+      zero_between_bounds[i] <- 1  
+    else
+      zero_between_bounds[i] <- 0  
   }
   
-  results[["mse_full"]] <- mean(mse_full)
-  results[["mse_reduced"]] <- mean(mse_reduced)
+
   results[["err_hat"]] <- mean(errors)
   results[["raw_mean"]] <- mean(errors)
   results[["sd"]] <- sd(errors)
@@ -47,6 +53,9 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
   results[["group_sd"]] <- apply(gp_errors, 2, sd)
   results[["raw_errors"]] <- errors
   results[["fold_id"]] <- fold_id
+  results[["prop_zero_CI"]] <- mean(zero_between_bounds)
+  results[["mse_full"]] <- mean(mse_full)
+  results[["mse_reduced"]] <- mean(mse_reduced)
   return(results)
 }
 
@@ -113,6 +122,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   pred_est <- mean(ho_errs) - bias_est #debiased estimate
   
   results <- list()
+  zero_between_bounds <- numeric(length(alpha))
   
   for (a in alpha) {
     ci_lo <- pred_est - qnorm(1 - a / 2) * sd(ho_errs) / sqrt(length(Y)) * ugp_infl
@@ -120,6 +130,12 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
     
     results[[paste0("ci_lo_alpha_", a)]] <- ci_lo
     results[[paste0("ci_hi_alpha_", a)]] <- ci_hi
+    
+    # Check if zero is between ci_lo and ci_hi
+    if (ci_lo <= 0 && ci_hi >= 0)
+      zero_between_bounds[i] <- 1  
+    else
+      zero_between_bounds[i] <- 0  
   }
   
   results[["sd_infl"]] <- ugp_infl
@@ -128,6 +144,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.seq, funcs, reps, n_folds,  alpha = c(0
   results[["bias_est"]] <- bias_est
   results[["sd"]] <- sd(ho_errs)
   results[["running_sd_infl"]] <- infl_est2
+  results[["prop_zero_CI"]] <- mean(zero_between_bounds)
   results[["mse_full"]] <- mse_full
   results[["mse_reduced"]] <- mse_reduced
   
