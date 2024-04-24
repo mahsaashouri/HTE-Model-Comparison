@@ -72,7 +72,7 @@ A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
 mu_new <- mu(1, x) 
-tau_new <- tau(1, x) 
+tau_new <- tau(4, x) 
 
 Y <- numeric(n)
 for (i in 1:n) {
