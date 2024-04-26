@@ -6,7 +6,7 @@
 set.seed(123)
 
 # Define the number of observations
-n <- 50
+n <- 500
 
 # Generate random values for x1 and x2 from a normal distribution
 x1 <- rnorm(n, mean = 0, sd = 1)

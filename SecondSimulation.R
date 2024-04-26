@@ -89,7 +89,7 @@ DATA_full <- data.frame(Y = Y, A = A, x, x.t)
 DATA_reduced <- data.frame(Y = Y, A = A, x)
 
 n_folds <- 10
-nested_cv_reps <- 1000
+nested_cv_reps <- 500
 
 Y <- DATA_full$Y
 DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
@@ -99,8 +99,8 @@ DATA_full <- model.matrix(Y~.-1, data = DATA_full)
 Treat <- DATA_reduced$A
 DATA_reduced <- DATA_reduced[ , !(names(DATA_reduced) %in% c('Y', 'A'))]
 DATA_reduced <- model.matrix(Y~.-1, data = DATA_reduced)
-tau <- mean(Treat == 1) - mean(Treat == 0)
-tau.range <- seq(-4*tau, 4*tau, length.out = 9)
+tau <- mean(Y[Treat == 1]) - mean(Y[Treat == 0])
+tau.range <- seq(-4*tau, 4*tau, length.out = 20)
 
 ## linear
 
