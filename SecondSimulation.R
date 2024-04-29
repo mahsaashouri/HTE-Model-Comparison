@@ -38,7 +38,7 @@ mu <- function(choice, x){
     stop("Invalid choice for mu")
 }
 
-tau <- function(choice, x) {
+tau.c <- function(choice, x) {
   if (choice == 1) {
     return(rep(0, n))
   } else if (choice == 2) {
@@ -72,7 +72,7 @@ A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
 mu_new <- mu(1, x) 
-tau_new <- tau(4, x) 
+tau_new <- tau.c(5, x) 
 
 Y <- numeric(n)
 for (i in 1:n) {
@@ -89,7 +89,7 @@ DATA_full <- data.frame(Y = Y, A = A, x, x.t)
 DATA_reduced <- data.frame(Y = Y, A = A, x)
 
 n_folds <- 10
-nested_cv_reps <- 500
+nested_cv_reps <- 300
 
 Y <- DATA_full$Y
 DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
@@ -309,5 +309,6 @@ nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vect
 nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 ## bart
+remove(list = ls())
 nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
