@@ -71,7 +71,7 @@ colnames(x) <-paste0("X", 1:p)
 A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
-mu_new <- mu(1, x) 
+mu_new <- mu(4, x) 
 tau_new <- tau.c(5, x) 
 
 Y <- numeric(n)
