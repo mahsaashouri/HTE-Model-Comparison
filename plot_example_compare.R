@@ -9,7 +9,7 @@ set.seed(123)
 n <- 500
 
 # Generate random values for x1 and x2 from a normal distribution
-x <- rnorm(n, mean = 0, sd = 1)
+x <- uniform(n)
 
 
 # Generate treatment variable A
@@ -17,29 +17,29 @@ A <- rbinom(n, size = 1, prob = 0.5)
 
 # Define the coefficients
 beta0 <- 2
-beta1 <- 3
+beta1 <- 5
 beta2 <- -1
-beta3 <- 1.5
+beta3 <- 5.5
 
 
 # Generate random error terms
-epsilon <- rnorm(n, mean = 0, sd = 1)
+epsilon <- rnorm(n, mean = 0, sd = 0.25)
 
 Y <- beta0 + beta1 * (x-0.5)^3 + beta2 * A + beta3 * A * (x-0.5)^3 + epsilon
 
 
-DATA_full <- data.frame('Y' = Y, 'x' = (x-0.5)^3, 'A' = A, 'x.t' = A * (x-0.5)^3)
-DATA_reduced <- data.frame('Y' = Y, 'x' = (x-0.5)^3, 'A' = A)
+DATA_full <- data.frame('Y' = Y, 'x' = x, 'A' = A, 'x.t' = A *x)
+DATA_reduced <- data.frame('Y' = Y, 'x' = x, 'A' = A)
 
 
 Y <- DATA_full$Y
-DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
-DATA_full <- model.matrix(Y~.-1, data = DATA_full)
+#DATA_full <- DATA_full[ , !(names(DATA_full) %in% c('Y'))]
+#DATA_full <- model.matrix(Y~.-1, data = DATA_full)
 
 
 Treat <- DATA_reduced$A
-DATA_reduced <- DATA_reduced[ , !(names(DATA_reduced) %in% c('Y', 'A'))]
-DATA_reduced <- model.matrix(Y~.-1, data = as.data.frame(DATA_reduced))
+#DATA_reduced <- DATA_reduced[ , !(names(DATA_reduced) %in% c('Y', 'A'))]
+#DATA_reduced <- model.matrix(Y~.-1, data = as.data.frame(DATA_reduced))
 tau <- mean(Y[Treat == 1]) - mean(Y[Treat == 0])
 tau.range <- seq(-4*tau, 4*tau, length.out = 20)
 
