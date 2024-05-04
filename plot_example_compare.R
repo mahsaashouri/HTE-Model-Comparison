@@ -9,7 +9,7 @@ set.seed(123)
 n <- 500
 
 # Generate random values for x1 and x2 from a normal distribution
-x <- uniform(n)
+x <- runif(n)
 
 
 # Generate treatment variable A
@@ -38,18 +38,18 @@ Y <- DATA_full$Y
 
 
 Treat <- DATA_reduced$A
-#DATA_reduced <- DATA_reduced[ , !(names(DATA_reduced) %in% c('Y', 'A'))]
-#DATA_reduced <- model.matrix(Y~.-1, data = as.data.frame(DATA_reduced))
+DATA_reduced <- DATA_reduced[ , !(names(DATA_reduced) %in% c('Y', 'A'))]
+DATA_reduced <- model.matrix(Y~.-1, data = as.data.frame(DATA_reduced))
 tau <- mean(Y[Treat == 1]) - mean(Y[Treat == 0])
 tau.range <- seq(-4*tau, 4*tau, length.out = 20)
 
 
 
-data.all <- cbind.data.frame(DATA_full, Y = Y)
-fit <- lm(Y ~., data = data.all)
+#data.all <- cbind.data.frame(DATA_full, Y = Y)
+fit <- lm(Y ~., data = DATA_full)
 pred <- predict(fit)
 
-plot_data <- data.frame(Observed = data.all$x, Predicted = pred, Trt = Treat)
+plot_data <- data.frame(coef = DATA_full$x, Observed = Y, Predicted = pred, Trt = Treat)
 # Subset dataframe based on Trt values
 df_trt1 <- plot_data[plot_data$Trt == 1, ]
 df_trt0 <- plot_data[plot_data$Trt == 0, ]
@@ -67,7 +67,7 @@ data.reduced <- cbind.data.frame(DATA_reduced, Y= Y - tau.star*Treat)
 fit_reduced <- lm(Y ~., data = data.reduced)
 pred_reduced <- predict(fit_reduced) + tau.star*Treat
 
-plot_data_reduced <- data.frame(Observed = data.reduced$DATA_reduced, Predicted = pred_reduced, Trt = Treat)
+plot_data_reduced <- data.frame(coef = data.reduced$DATA_reduced, Observed = Y, Predicted = pred_reduced, Trt = Treat)
 # Subset dataframe based on Trt values
 df_reduced_trt1 <- plot_data_reduced[plot_data_reduced$Trt == 1, ]
 df_reduced_trt0 <- plot_data_reduced[plot_data_reduced$Trt == 0, ]
@@ -76,12 +76,12 @@ df_reduced_trt0 <- plot_data_reduced[plot_data_reduced$Trt == 0, ]
 
 library(ggplot2)
 ggplot() +
-  geom_line(data = df_trt1, aes(x = Predicted, y = Observed), color = "blue") +
-  geom_point(data = df_reduced_trt1, aes(x = Predicted, y = Observed), color = "blue", alpha = 0.5) +
+  geom_line(data = df_trt1, aes(x = coef, y = pred), color = "blue") +
+  #geom_point(data = df_reduced_trt1, aes(x = Predicted, y = Observed), color = "blue", alpha = 0.5) +
   
   # Add df_trt0 as a line with points from df_reduced_trt0 around it
-  geom_line(data = df_trt0, aes(x = Predicted, y = Observed), color = "red") +
-  geom_point(data = df_reduced_trt0, aes(x = Predicted, y = Observed), color = "red", alpha = 0.5) +
+  geom_line(data = df_trt0, aes(x = coef, y = pred), color = "red") +
+  #geom_point(data = df_reduced_trt0, aes(x = Predicted, y = Observed), color = "red", alpha = 0.5) +
   
   # Add labels to the lines
   geom_text(data = df_trt1[1, ], aes(x = Predicted, y = Observed, label = "Treat = 1"), hjust = -1.2, vjust = 0.2, color = "blue") +

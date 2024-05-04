@@ -54,8 +54,8 @@ tau.c <- function(choice, x) {
   }
 }
 
-n <- 100  # Number of observations
-p <- 10   # Number of features
+n <- 500  # Number of observations
+p <- 9   # Number of features
 
 # Generate x
 x <- matrix(0, nrow = n, ncol = p)
@@ -71,8 +71,8 @@ colnames(x) <-paste0("X", 1:p)
 A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
-mu_new <- mu(1, x) 
-tau_new <- tau.c(3, x) 
+mu_new <- mu(2, x) 
+tau_new <- tau.c(1, x) 
 
 Y <- numeric(n)
 for (i in 1:n) {
@@ -309,19 +309,14 @@ nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vect
 nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 ## bart
-#remove(list = ls())
+options(error = utils::dump.frames)
 
-nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
-          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+#nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
+#          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 
-for (i in 1:nested_cv_reps) {
-  tryCatch({
-    nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat), 
-              tau.seq = tau.range, bart_funs, n_folds = n_folds, reps = 1, verbose = TRUE)
-  }, error = function(e) {
-    cat("An error occurred during nested_cv for round", i, ":", conditionMessage(e), "\n")
-    # Skip to the next iteration
-    next
-  })
-}
+tryCatch(nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
+                   n_folds = n_folds, reps  = nested_cv_reps, verbose = T), error = function(e) {
+                     cat("An error occurred:", conditionMessage(e), "\n")
+                     return(NA)  
+                   })
 
