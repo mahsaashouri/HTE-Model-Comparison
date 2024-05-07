@@ -66,12 +66,12 @@ ggplot() +
   geom_line(data = fit_trt0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5) +
   geom_line(data = test_points_reduced1, aes(x = x, y = fitted_vals), color = "blue", alpha = 0.5, linetype=2) +
   geom_line(data = test_points_reduced0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5, linetype=2) +
-  geom_text(data = data.frame(x=0.0, Y=2.8), aes(x = x, y = Y, label = "Treatment = 1"), hjust = -0.5, vjust = 0.2, color = "blue", size = 5) +
-  geom_text(data = data.frame(x=0.0, Y=2.6), aes(x = x, y = Y, label = "Treatment = 0"), hjust = -0.5, vjust = 0.2, color = "red", size = 5) +
+  geom_text(data = data.frame(x=0.0, Y=2.8), aes(x = x, y = Y, label = "Treatment = 1"), hjust = -0.5, vjust = 0.2, color = "blue", size = 7) +
+  geom_text(data = data.frame(x=0.0, Y=2.6), aes(x = x, y = Y, label = "Treatment = 0"), hjust = -0.5, vjust = 0.2, color = "red", size = 7) +
   labs(y = "Outcome", x = "x", color = "Treatment") +
   scale_color_manual(values = c("blue", "red"), labels = c("Treatment = 1", "Trt = 0")) +
   theme_minimal() +
-  theme(axis.text.x = element_text(size = 15), 
-        axis.text.y = element_text(size = 15),
-        axis.title = element_text(size = 18), 
-        text = element_text(size = 15))  
+  theme(axis.text.x = element_text(size = 20), 
+        axis.text.y = element_text(size = 20),
+        axis.title = element_text(size = 25), 
+        text = element_text(size = 20))  
