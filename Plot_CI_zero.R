@@ -33,6 +33,9 @@ data_500 <- data.frame(
   SampleSize = rep("500", each = length(linear))
 )
 
+method_order <- c("linear", "glmnet", "glmboost")
+
+# Combine the data for both sample sizes
 combined_data <- rbind(data_100, data_500)
 
 # Plot with facets
@@ -44,6 +47,7 @@ ggplot(combined_data, aes(x = Method, y = Value, fill = Method)) +
   theme_bw() +
   theme(axis.text.x = element_text(size = 20), 
         axis.text.y = element_text(size = 20),
-        axis.title = element_text(size = 20), 
+        axis.title = element_text(size = 22), 
         strip.text = element_text(size = 18),
-        text = element_text(size = 20))
+        text = element_text(size = 20)) +
+  scale_x_discrete(limits = method_order)
