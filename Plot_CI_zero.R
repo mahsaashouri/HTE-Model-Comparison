@@ -41,6 +41,7 @@ combined_data <- rbind(data_100, data_500)
 # Plot with facets
 ggplot(combined_data, aes(x = Method, y = Value, fill = Method)) +
   geom_violin(fill = 'gray') +
+  #geom_boxplot() +
   labs(x = "Method",
        y = "Value") +
   facet_wrap(~ SampleSize, ncol = 2, labeller = as_labeller(c("100" = "Sample Size = 100", "500" = "Sample Size = 500"))) +
