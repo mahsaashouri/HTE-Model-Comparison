@@ -59,18 +59,19 @@ fit_trt1 <- subset(test_points, A==1)
 fit_trt0 <- subset(test_points, A==0)
 
 
-ggplot() + geom_point(data = df_trt1, aes(x = x, y = Y), color = "blue", alpha = 0.5) +
+ggplot() + 
+  geom_point(data = df_trt1, aes(x = x, y = Y), color = "blue", alpha = 0.5) +
   geom_point(data = df_trt0, aes(x = x, y = Y), color = "red", alpha = 0.5) +
   geom_line(data = fit_trt1, aes(x = x, y = fitted_vals), color = "blue", alpha = 0.5) +
   geom_line(data = fit_trt0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5) +
-  geom_line(data = test_points_reduced1, aes(x = x, y = fitted_vals), color = "blue", alpha = 0.5,
-            linetype=2) +
-  geom_line(data = test_points_reduced0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5,
-            linetype=2) +
-  geom_text(data = data.frame(x=0.0, Y=2.8), aes(x = x, y = Y, label = "Treatment = 1"),
-            hjust = -0.5, vjust = 0.2, color = "blue") +
-  geom_text(data = data.frame(x=0.0, Y=2.6), aes(x = x, y = Y, label = "Treatment = 0"),
-            hjust = -0.5, vjust = 0.2, color = "red") +
+  geom_line(data = test_points_reduced1, aes(x = x, y = fitted_vals), color = "blue", alpha = 0.5, linetype=2) +
+  geom_line(data = test_points_reduced0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5, linetype=2) +
+  geom_text(data = data.frame(x=0.0, Y=2.8), aes(x = x, y = Y, label = "Treatment = 1"), hjust = -0.5, vjust = 0.2, color = "blue", size = 5) +
+  geom_text(data = data.frame(x=0.0, Y=2.6), aes(x = x, y = Y, label = "Treatment = 0"), hjust = -0.5, vjust = 0.2, color = "red", size = 5) +
   labs(y = "Outcome", x = "x", color = "Treatment") +
   scale_color_manual(values = c("blue", "red"), labels = c("Treatment = 1", "Trt = 0")) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 15), 
+        axis.text.y = element_text(size = 15),
+        axis.title = element_text(size = 18), 
+        text = element_text(size = 15))  
