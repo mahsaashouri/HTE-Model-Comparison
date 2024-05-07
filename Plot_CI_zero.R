@@ -44,6 +44,6 @@ ggplot(combined_data, aes(x = Method, y = Value, fill = Method)) +
   theme_bw() +
   theme(axis.text.x = element_text(size = 20), 
         axis.text.y = element_text(size = 20),
-        axis.title = element_text(size = 25), 
+        axis.title = element_text(size = 20), 
         strip.text = element_text(size = 18),
         text = element_text(size = 20))
