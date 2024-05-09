@@ -9,6 +9,15 @@ squared_loss <- function(y1, y2, y3, Trt, tau) {
   (y1 - y3)^2 - (y2 - (y3 - tau*Trt))^2
 }
 
+mse <- function(y1, y2, y3, Trt, tau) {
+  ## y1 - full model
+  ## y2 - reduced model 
+  ## y3 - outcome
+  mse_full <- mean((y1 - y3)^2)
+  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
+  return(list(full = mse_full, reduced = mse_reduced))
+}
+
 fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
@@ -35,10 +44,11 @@ predictor_bart <- function(fit, X_new) {
 
 bart_funs <- list(fitter = fitter_bart,
                                predictor = predictor_bart,
+                               mse = mse,
                                loss = squared_loss,
                                name = "bart")
 n_folds <- 6
-nested_cv_reps <- 500 #average over many random splits
+nested_cv_reps <- 300 #average over many random splits
 
 
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
@@ -58,8 +68,8 @@ DATA.cor.reduced <- bind_cols(output, selected_data)
 # Create training and test sets using the selected index numbers
 Y <- DATA.cor.reduced$iqsb.36
 Treat <- DATA.cor.reduced$treat
-tau <- mean(Treat == 1) - mean(Treat == 0)
-tau.range <- seq(-4*tau, 4*tau, length.out = 9)
+tau <- mean(Y[Treat == 1]) - mean(Y[Treat == 0])
+tau.range <- seq(-4*tau, 4*tau, length.out = 20)
 DATA.cor.reduced <- DATA.cor.reduced[ , !(names(DATA.cor.reduced) %in% c('iqsb.36', 'treat'))]
 DATA.cor.reduced <- model.matrix(Y~.-1, data = DATA.cor.reduced)
 
