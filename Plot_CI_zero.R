@@ -1,6 +1,7 @@
 
 library(ggplot2)
 library(gridExtra)
+
 ## Sample size 100
 mu <- c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4)
 tau <- c(1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
@@ -13,7 +14,7 @@ glmboost <- c(0.8, 0.8, 0.8, 0.8, 0.8, 1, 1, 1, 0.8, 1, 0.8, 0.8, 0.8, 0.8, 1, 1
 
 data_100 <- data.frame(
   Method = rep(c("linear", "glmnet", "glmboost"), each = length(linear)),
-  Value = c(linear, glmnet, glmboost),
+  Value = c(1-linear, 1-glmnet, 1-glmboost),
   SampleSize = rep("100", each = length(linear))
 )
 
@@ -29,7 +30,7 @@ glmboost <- c(0.8, 0.8, 0.8, 1, 1, 0.8, 0.8, 0.8, 1, 0.8, 0.4, 0.2, 0.2, 1, 0.4,
 
 data_500 <- data.frame(
   Method = rep(c("linear", "glmnet", "glmboost"), each = length(linear)),
-  Value = c(linear, glmnet, glmboost),
+  Value = c(1-linear, 1-glmnet, 1-glmboost),
   SampleSize = rep("500", each = length(linear))
 )
 
@@ -52,3 +53,4 @@ ggplot(combined_data, aes(x = Method, y = Value, fill = Method)) +
         strip.text = element_text(size = 18),
         text = element_text(size = 20)) +
   scale_x_discrete(limits = method_order)
+
