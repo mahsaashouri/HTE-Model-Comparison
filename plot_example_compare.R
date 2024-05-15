@@ -68,8 +68,8 @@ ggplot() +
   geom_line(data = test_points_reduced0, aes(x = x, y = fitted_vals), color = "red", alpha = 0.5, linetype = 2) +
   geom_text(data = data.frame(x = 0.0, Y = 4.5), aes(x = x, y = Y, label = "Treatment = 1"), hjust = -0.5, vjust = 0.2, color = "blue", size = 7) +
   geom_text(data = data.frame(x = 0.0, Y = 4.2), aes(x = x, y = Y, label = "Treatment = 0"), hjust = -0.5, vjust = 0.2, color = "red", size = 7) +
-  geom_text(data = data.frame(x = 0.016, Y = 3.8), aes(x = x, y = Y, label = "Restricted"), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
-  geom_text(data = data.frame(x = -0.01, Y = 3.5), aes(x = x, y = Y, label = "Unrestricted ---"), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
+  geom_text(data = data.frame(x = 0.019, Y = 3.8), aes(x = x, y = Y, label = "Restricted"), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
+  geom_text(data = data.frame(x = -0.001, Y = 3.5), aes(x = x, y = Y, label = "Unrestricted ---"), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
   annotate("segment", x = 0.16, xend = 0.18, y = 3.8, yend = 3.8, color = "gray40", size = 0.8) +
   labs(y = "Outcome", x = "x", color = "Treatment") +
   scale_color_manual(values = c("blue", "red"), labels = c("Treatment = 1", "Trt = 0")) +
