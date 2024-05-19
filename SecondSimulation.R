@@ -38,7 +38,7 @@ mu <- function(choice, x){
     stop("Invalid choice for mu")
 }
 
-tau.c <- function(choice, x) {
+theta <- function(choice, x) {
   if (choice == 1) {
     return(rep(0, n))
   } else if (choice == 2) {
@@ -72,11 +72,11 @@ A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
 mu_new <- mu(4, x) 
-tau_new <- tau.c(5, x) 
+theta_new <- theta(5, x) 
 
 Y <- numeric(n)
 for (i in 1:n) {
-  Y[i] <- mu_new[i] + A[i] * tau_new[i] + rnorm(1)  
+  Y[i] <- mu_new[i] + A[i] * theta_new[i] + rnorm(1)  
 }
 
 x.t <- matrix(NA, nrow = nrow(x), ncol = ncol(x))
