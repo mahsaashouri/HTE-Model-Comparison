@@ -1,7 +1,7 @@
 
 
 naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
-                       trans = list(identity), fold_id = NULL) {
+                     trans = list(identity), fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
     fold_id <- (1:nrow(X)) %% n_folds + 1
@@ -12,22 +12,22 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
   mse_full <- c()
   mse_reduced <- c()
   gp_errors <- c()
-    for(k in 1:n_folds) {
-      fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k], Trt[fold_id != k], tau.seq)
-      Y_hat <- funcs$predictor(fit$full, X[fold_id == k, ])
-      Y_hat_reduced <- funcs$predictor(fit$reduced, X0[fold_id == k, ])
-      error_k <- funcs$loss(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
-      mse_k <- funcs$mse(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
-      errors <- c(errors, error_k)
-      mse_full <- c(mse_full, mse_k$full)
-      mse_reduced <- c(mse_reduced, mse_k$reduced)
-      
-      temp_vec <- c()
-      for(tran in trans) {
-        temp_vec <- c(temp_vec, tran(mean(error_k)))
-      }
-      gp_errors <- rbind(gp_errors, temp_vec)
+  for(k in 1:n_folds) {
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k], Trt[fold_id != k], tau.seq)
+    Y_hat <- funcs$predictor(fit$full, X[fold_id == k, ])
+    Y_hat_reduced <- funcs$predictor(fit$reduced, X0[fold_id == k, ])
+    error_k <- funcs$loss(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
+    mse_k <- funcs$mse(Y_hat, Y_hat_reduced, Y[fold_id == k], Trt[fold_id == k], fit$tau)
+    errors <- c(errors, error_k)
+    mse_full <- c(mse_full, mse_k$full)
+    mse_reduced <- c(mse_reduced, mse_k$reduced)
+    
+    temp_vec <- c()
+    for(tran in trans) {
+      temp_vec <- c(temp_vec, tran(mean(error_k)))
     }
+    gp_errors <- rbind(gp_errors, temp_vec)
+  }
   
   results <- list()
   zero_between_bounds <- numeric(length(alpha))
@@ -45,7 +45,7 @@ naive_cv <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds, alpha = c(0.01, 0.0
       zero_between_bounds[a] <- 0  
   }
   
-
+  
   results[["err_hat"]] <- mean(errors)
   results[["raw_mean"]] <- mean(errors)
   results[["sd"]] <- sd(errors)
@@ -162,21 +162,36 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
   ho_mse_reduced <- matrix(0, ncol = n_folds, nrow = n_folds)
   #^ entry i, j is error on fold i,
   # when folds i & j are not used for model fitting.
-    for(f1 in 1:(n_folds - 1)) {
-      for(f2 in (f1+1):n_folds) {
+  for (f1 in 1:(n_folds - 1)) {
+    for (f2 in (f1 + 1):n_folds) {
+      tryCatch({
         test_idx <- c(which(fold_id == f1), which(fold_id == f2))
         fit <- funcs$fitter(as.matrix(X[-test_idx, ]), as.matrix(X0[-test_idx, ]), Y[-test_idx], Trt[-test_idx], tau.seq)
         preds <- funcs$predictor(fit$full, X)
         preds_reduced <- funcs$predictor(fit$reduced, X0)
+        
         ho_errors[f1, f2, ] <- funcs$loss(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau)
         ho_errors[f2, f1, ] <- funcs$loss(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau)
+        
         mse_full_reduced12 <- funcs$mse(preds[fold_id == f1], preds_reduced[fold_id == f1], Y[fold_id == f1], Trt[fold_id == f1], fit$tau)
         mse_full_reduced21 <- funcs$mse(preds[fold_id == f2], preds_reduced[fold_id == f1], Y[fold_id == f2], Trt[fold_id == f2], fit$tau)
-        ho_mse_full[f1, f2] <- mse_full_reduced12$full; ho_mse_full[f2, f1] <- mse_full_reduced21$full
-        ho_mse_reduced[f1, f2] <- mse_full_reduced12$reduced;  ho_mse_reduced[f2, f1] <- mse_full_reduced21$reduced
-      }
-      
+        
+        ho_mse_full[f1, f2] <- mse_full_reduced12$full
+        ho_mse_full[f2, f1] <- mse_full_reduced21$full
+        ho_mse_reduced[f1, f2] <- mse_full_reduced12$reduced
+        ho_mse_reduced[f2, f1] <- mse_full_reduced21$reduced
+      }, error = function(e) {
+        message(sprintf("Skipping fold combination f1 = %d, f2 = %d due to error: %s", f1, f2, e$message))
+        ho_errors[f1, f2, ] <- NA
+        ho_errors[f2, f1, ] <- NA
+        ho_mse_full[f1, f2] <- NA
+        ho_mse_full[f2, f1] <- NA
+        ho_mse_reduced[f1, f2] <- NA
+        ho_mse_reduced[f2, f1] <- NA
+      })
     }
+  }
+  
   
   #e_bar - f_bar in the notation of the paper. n_folds X 1 matrix
   out_mat <- matrix(0, n_folds, 2)
@@ -209,5 +224,5 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
               "errs" = all_ho_errs,
               "mse_full" = mean(as.vector(ho_mse_full)),
               "mse_reduced" = mean(as.vector(ho_mse_reduced))
-              ))
+  ))
 }

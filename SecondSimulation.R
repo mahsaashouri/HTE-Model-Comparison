@@ -71,8 +71,8 @@ colnames(x) <-paste0("X", 1:p)
 A <- rbinom(n, 1, 0.5)
 
 # Generate outcome variable Y
-mu_new <- mu(4, x) 
-theta_new <- theta(5, x) 
+mu_new <- mu(1, x) 
+theta_new <- theta(2, x) 
 
 Y <- numeric(n)
 for (i in 1:n) {
@@ -309,14 +309,14 @@ nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vect
 nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, glmboost_funs, 
           n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 ## bart
-options(error = utils::dump.frames)
+#options(error = utils::dump.frames)
 
-#nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
-#          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
+nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
+          n_folds = n_folds, reps  = nested_cv_reps, verbose = T)
 
-tryCatch(nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
-                   n_folds = n_folds, reps  = nested_cv_reps, verbose = T), error = function(e) {
-                     cat("An error occurred:", conditionMessage(e), "\n")
-                     return(NA)  
-                   })
+#tryCatch(nested_cv(data.frame(DATA_full), data.frame(DATA_reduced), as.vector(Y), as.vector(Treat),tau.seq = tau.range, bart_funs, 
+#                   n_folds = n_folds, reps  = nested_cv_reps, verbose = T), error = function(e) {
+#                     cat("An error occurred:", conditionMessage(e), "\n")
+#                     return(NA)  
+#                   })
 
