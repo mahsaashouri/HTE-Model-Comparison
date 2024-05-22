@@ -181,7 +181,6 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.seq, funcs, n_folds) {
         ho_mse_reduced[f1, f2] <- mse_full_reduced12$reduced
         ho_mse_reduced[f2, f1] <- mse_full_reduced21$reduced
       }, error = function(e) {
-        message(sprintf("Skipping fold combination f1 = %d, f2 = %d due to error: %s", f1, f2, e$message))
         ho_errors[f1, f2, ] <- NA
         ho_errors[f2, f1, ] <- NA
         ho_mse_full[f1, f2] <- NA
