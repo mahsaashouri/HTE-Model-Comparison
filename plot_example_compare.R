@@ -70,10 +70,10 @@ ggplot() +
   geom_text(data = data.frame(x = 0.0, Y = 4.2), aes(x = x, y = Y), label = "Treatment = 0", hjust = -0.5, vjust = 0.2, color = "red", size = 7) +
   annotate("segment", x = 0.25, xend = 0.3, y = 3.8, yend = 3.8, color = "gray40", size = 0.8) +
   annotate("text", x = 0.015, y = 3.8, label = "Restricted - ", hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
-  annotate("text", x = 0.15, y = 3.8, label = expression(hat(f)(bold(x), A)), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
+  annotate("text", x = 0.15, y = 3.8, label = expression(hat(g)(bold(x), A)), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
   annotate("segment", x = 0.27, xend = 0.32, y = 3.5, yend = 3.5, color = "gray40", size = 0.8, linetype = "dashed") +
   annotate("text", x = 0.0051, y = 3.5, label = "Unrestricted - ", hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
-  annotate("text", x = 0.17, y = 3.5, label = expression(hat(g)(bold(x), A)), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
+  annotate("text", x = 0.17, y = 3.5, label = expression(hat(f)(bold(x), A)), hjust = -0.5, vjust = 0.2, color = "gray40", size = 7) +
   labs(y = "Outcome", x = "x", color = "Treatment") +
   scale_color_manual(values = c("blue", "red"), labels = c("Treatment = 1", "Trt = 0")) +
   theme_minimal() +
