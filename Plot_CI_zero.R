@@ -70,16 +70,18 @@ data_500_2 <- cbind(data_500[!condition, ], sampleCon = '500-2')
 combined_data <- rbind(data_100_1, data_100_2, data_500_1, data_500_2)
 method_order <- c("linear", "glmnet", "glmboost")
 
+library(latex2exp)
+combined_data$sampleCon <- factor(combined_data$sampleCon, 
+                                  labels = c('100-1' = parse(text = TeX('Sample Size = 100 - $\\theta_1$, $\\theta_2$')),
+                                             '100-2' = parse(text = TeX('Sample Size = 100 - $\\theta_3$, $\\theta_4$, $\\theta_5$')),
+                                             '500-1' = parse(text = TeX('Sample Size = 500 - $\\theta_1$, $\\theta_2$')),
+                                             '500-2' = parse(text = TeX('Sample Size = 500 - $\\theta_3$, $\\theta_4$, $\\theta_5$'))))
 
-ggplot(combined_data, aes(x = Method, y = Value, fill = Method)) +
+ggplot(data = combined_data, aes(x = Method, y = Value, fill = Method)) +
   geom_violin(fill = 'gray') +
-  #geom_boxplot() +
   labs(x = "Method",
        y = "Value") +
-  facet_wrap(~ sampleCon, ncol = 2, labeller = as_labeller(c("100-1" = "Sample Size = 100 - θ1, θ2", 
-                                                              "100-2" = "Sample Size = 100 - θ3, θ4, θ5",
-                                                              "500-1" = "Sample Size = 500 - θ1, θ2",
-                                                              "500-2" = "Sample Size = 500 - θ3, θ4, θ5"))) +
+  facet_wrap(~ sampleCon, ncol = 2, labeller = label_parsed) +
   theme_bw() +
   theme(axis.text.x = element_text(size = 20), 
         axis.text.y = element_text(size = 20),
