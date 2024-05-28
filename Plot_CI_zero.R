@@ -79,6 +79,7 @@ combined_data$sampleCon <- factor(combined_data$sampleCon,
 
 ggplot(data = combined_data, aes(x = Method, y = Value, fill = Method)) +
   geom_violin(fill = 'gray') +
+  stat_summary(fun = median, geom = "point", shape = 23, size = 3, fill = "white", color = "black") +
   labs(x = "Method",
        y = "Value") +
   facet_wrap(~ sampleCon, ncol = 2, labeller = label_parsed) +
