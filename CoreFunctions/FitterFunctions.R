@@ -81,6 +81,33 @@ fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
+fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
+  ## X0 does not have treatment column
+  if(sum(is.na(idx)) > 0) {
+    idx <- 1:nrow(X)
+  }
+  Xmat <- as.matrix(X[idx,])
+  X0mat <- as.matrix(X0[idx,])
+  fit <- bart(x.train=Xmat, y.train=Y[idx],
+              ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
+
+  f0fn <- function(tau) {
+    Wtau <- Y[idx] - tau*Trt[idx]
+    fit_reduced <- bart(x.train=X0mat, y.train=Wtau,
+                        ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
+    pp <- fit_reduced$yhat.train.mean
+    mse_local <- mean((Wtau - pp)^2)
+    return(mse_local)
+  }
+  tau.star <- optimize(f0fn, interval=tau.range)$minimum
+  Wtau.star <- Y[idx] - tau.star*Trt[idx]
+  fit_reduced <- bart(x.train=X0mat, y.train=Wtau.star,
+                      ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
+
+  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
+}
+
+
 ### Predictor Functions.
 
 predictor_lm <- function(fit, X_new, X0_new, Trt_new) {
@@ -98,5 +125,11 @@ predictor_glmnet <- function(fit, X_new, X0_new, Trt_new) {
 predictor_glmboost <- function(fit, X_new, X0_new, Trt_new) {
   pfull <- as.numeric(predict(fit$full, newdata = as.matrix(X_new)))
   preduced <- as.numeric(predict(fit$reduced, newdata = as.matrix(X0_new))) + fit$tau*Trt_new
+  return(list(pred_full=pfull, pred_reduced=preduced))
+}
+
+predictor_bart <- function(fit, X_new, X0_new, Trt_new) {
+  pfull <- colMeans(predict(fit$full, newdata=as.matrix(X_new), ndpost=500L, printevery=1000, verbose=FALSE))
+  preduced <- colMeans(predict(fit$reduced, newdata = as.matrix(X0_new), ndpost=500L, printevery=1000, verbose=FALSE)) + fit$tau*Trt_new
   return(list(pred_full=pfull, pred_reduced=preduced))
 }
