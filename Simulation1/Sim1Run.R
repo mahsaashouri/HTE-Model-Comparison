@@ -19,7 +19,7 @@ beta4 <- 0.5
 beta5 <- -2
 
 ## Source fitting and nested cv functions
-setwd("~/Documents/HTE-Model-Comparison")  ## Change for your computer
+setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
 source("CoreFunctions/CVDiffFunctions.R")
 source("CoreFunctions/FitterFunctions.R")
 
@@ -52,10 +52,10 @@ bart_funs <- list(fitter = fitter_bart,
 # number of nested cv replications:
 n <- 500
 n_folds <- 5
-nested_cv_reps <- 10 ## Use 50 or 100 for paper
+nested_cv_reps <- 100 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 1  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 cover_lm <- cover_glmnet <- cover_glmboost <- cover_bart <- rep(NA, nreps)
 hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_bart <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_glmboost <- CI_bart <- matrix(NA, nrow=nreps, ncol=2)
@@ -194,5 +194,5 @@ for(h in 1:nreps) {
 }
 ## Save: cover_lm, cover_glmnet, cover_glmboost, cover_bart
 ##       CI_lm, CI_glmnet, CI_glmboost, CI_bart
-##.      hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_bart
+##      hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_bart
 
