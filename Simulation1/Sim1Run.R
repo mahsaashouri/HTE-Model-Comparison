@@ -52,7 +52,7 @@ bart_funs <- list(fitter = fitter_bart,
 # number of nested cv replications:
 n <- 500
 n_folds <- 5
-nested_cv_reps <- 100 ## Use 50 or 100 for paper
+nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
 nreps <- 500  ## Use nreps = 500 for paper
@@ -165,8 +165,8 @@ for(h in 1:nreps) {
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
                     n_folds = n_folds, reps  = nested_cv_reps)
 
-  ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bart_funs,
-                         n_folds = n_folds, reps  = nested_cv_reps)
+  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bart_funs,
+  #                       n_folds = n_folds, reps  = nested_cv_reps)
   ############################################
   ### Record Results
   ############################################
@@ -186,10 +186,10 @@ for(h in 1:nreps) {
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
 
-  cover_bart[h] <- theta_bart > ncv_bart$ci_lo & theta_bart < ncv_bart$ci_hi
-  CI_bart[h,1] <- ncv_bart$ci_lo
-  CI_bart[h,2] <- ncv_bart$ci_hi
-  hvalue_bart <- ncv_bart$hvalue
+  #cover_bart[h] <- theta_bart > ncv_bart$ci_lo & theta_bart < ncv_bart$ci_hi
+  #CI_bart[h,1] <- ncv_bart$ci_lo
+  #CI_bart[h,2] <- ncv_bart$ci_hi
+  #hvalue_bart[h] <- ncv_bart$hvalue
   cat("Simulation Replication: ", h, "\n")
 }
 ## Save: cover_lm, cover_glmnet, cover_glmboost, cover_bart
