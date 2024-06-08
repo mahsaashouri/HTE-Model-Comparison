@@ -32,8 +32,8 @@ mu <- function(choice, x){
     return(f2(x))
   else if (choice == 3) 
     return(f3(x))
-  else if (choice == 4) 
-    return(f4(x))
+  #else if (choice == 4) 
+  #  return(f4(x))
   else
     stop("Invalid choice for mu")
 }
@@ -47,9 +47,10 @@ theta <- function(choice, x) {
     return(2 + 0.1/(1 + exp(-x[, 2])))
   } else if (choice == 4) {
     return(f1(x))
-  } else if (choice == 5) {
-    return(f2(x))
-  } else {
+  } #else if (choice == 5) {
+    #return(f2(x))
+  #} 
+  else {
     stop("Invalid choice for tau")
   }
 }
