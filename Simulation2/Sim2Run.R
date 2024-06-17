@@ -116,8 +116,8 @@ for(h in 1:nreps) {
   A <- rbinom(n, size = 1, prob = 0.5)
   
   # Generate outcome variable Y
-  mu_new <- mu(1, x) 
-  theta_new <- theta(1, x) 
+  mu_new <- mu(2, x) 
+  theta_new <- theta(2, x) 
   
   # Generate residuals and outcomes
   epsilon <- rnorm(n, mean = 0, sd = 1)

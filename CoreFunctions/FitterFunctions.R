@@ -23,7 +23,7 @@ fitter_lm <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   }
   data.all <- cbind.data.frame(X[idx, ], Y = Y[idx])
   fit <- lm(Y ~., data = data.all)
-
+  
   f0fn <- function(tau) {
     data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau*Trt[idx])
     fit_reduced <- lm(Y ~., data = data.reduced)
@@ -45,7 +45,7 @@ fitter_glmnet <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   Xmat <- as.matrix(X[idx,])
   X0mat <- as.matrix(X0[idx,])
   fit <- cv.glmnet(Xmat, Y[idx], family = "gaussian", nfolds = 5)
-
+  
   f0fn <- function(tau) {
     Wtau <- Y[idx] - tau*Trt[idx]
     fit_reduced <- cv.glmnet(X0mat, Wtau, family = "gaussian", nfolds = 5)
@@ -53,13 +53,13 @@ fitter_glmnet <- function(X, X0, Y, Trt, tau.range, idx = NA) {
     return(mse_local)
   }
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
-
+  
   Wtau.star <- Y[idx] - tau.star*Trt[idx]
   fit_reduced <- cv.glmnet(X0mat, Wtau.star, family = "gaussian", nfolds = 5)
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
-fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
+fitter_glmboost <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
@@ -67,7 +67,7 @@ fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   Xmat <- as.matrix(X[idx,])
   X0mat <- as.matrix(X0[idx,])
   fit <- glmboost(x=Xmat, y=Y[idx], family = Gaussian())
-
+  
   f0fn <- function(tau) {
     Wtau <- Y[idx] - tau*Trt[idx]
     fit_reduced <- glmboost(x=X0mat, y=Wtau,family = Gaussian())
@@ -77,11 +77,11 @@ fitter_glmboost <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
   Wtau.star <- Y[idx] - tau.star*Trt[idx]
   fit_reduced <- glmboost(x=X0mat, y=Wtau.star,family = Gaussian())
-
+  
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
-fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
+fitter_bart <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   ## X0 does not have treatment column
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
@@ -90,7 +90,7 @@ fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   X0mat <- as.matrix(X0[idx,])
   fit <- bart(x.train=Xmat, y.train=Y[idx],
               ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
-
+  
   f0fn <- function(tau) {
     Wtau <- Y[idx] - tau*Trt[idx]
     fit_reduced <- bart(x.train=X0mat, y.train=Wtau,
@@ -103,7 +103,7 @@ fitter_bart <- function(X, X0, Y, Trt, tau.seq, idx = NA) {
   Wtau.star <- Y[idx] - tau.star*Trt[idx]
   fit_reduced <- bart(x.train=X0mat, y.train=Wtau.star,
                       ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
-
+  
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
