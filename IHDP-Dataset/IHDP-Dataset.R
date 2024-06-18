@@ -1,0 +1,162 @@
+library(glmnet)
+library(mboost)
+library(dbarts)
+library(tidyverse)
+# Set seed for reproducibility
+set.seed(12356)
+##################################
+## IHDP dataset
+DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
+cor_matrix <- cor(DATA)
+cor_with_output <- cor_matrix[, 1]
+cor_with_output[1] <- 0  # Set the correlation with output to 0
+sorted_correlations <- sort(abs(cor_with_output), decreasing = TRUE)
+top_10_correlations <- sorted_correlations[1:10]
+top_10_predictors <- names(top_10_correlations)
+# Subset your data to keep only the top 10 predictor columns
+selected_data <- DATA[, top_10_predictors]
+## reduced model
+output <- DATA[,c('iqsb.36', 'treat')]
+DAT_reduced <- bind_cols(output, selected_data)
+## full model
+selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+for(k in 1:10){
+  selected_data.T[,k] <- selected_data[,k]*output$treat
+}
+colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
+DAT <- bind_cols(output, selected_data, selected_data.T)
+
+
+## Source fitting and nested cv functions
+setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
+source("CoreFunctions/CVDiffFunctions.R")
+source("CoreFunctions/FitterFunctions.R")
+
+## Define linear regression, glmnet, and boosting fitting and prediction functions.
+linear_regression_funs <- list(fitter = fitter_lm,
+                               predictor = predictor_lm,
+                               mse = mse,
+                               loss = squared_loss,
+                               name = "linear_regression")
+
+glmnet_funs <- list(fitter = fitter_glmnet,
+                    predictor = predictor_glmnet,
+                    mse = mse,
+                    loss = squared_loss,
+                    name = "glmnet")
+
+glmboost_funs <- list(fitter = fitter_glmboost,
+                      predictor = predictor_glmboost,
+                      mse = mse,
+                      loss = squared_loss,
+                      name = "glmboost")
+
+bart_funs <- list(fitter = fitter_bart,
+                  predictor = predictor_bart,
+                  mse = mse,
+                  loss = squared_loss,
+                  name = "bart")
+
+# Set the number of folds, and
+# number of nested cv replications:
+n_folds <- 5
+nested_cv_reps <- 50 ## Use 50 or 100 for paper
+
+## Set the number of simulation replications
+nreps <- 500  ## Use nreps = 500 for paper
+cover_lm <- cover_glmnet <- cover_glmboost <- cover_bart <- rep(NA, nreps)
+hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_bart <- rep(NA, nreps)
+CI_lm <- CI_glmnet <- CI_glmboost <- CI_bart <- matrix(NA, nrow=nreps, ncol=2)
+true_thetas <- matrix(NA, nreps, 4)
+for(h in 1:nreps) {
+  
+  ######################
+  ## Compute true value of \theta_{XY} for each method
+  ######################
+
+  Xmat_tmp <- model.matrix(iqsb.36 ~ . - 1, data=DAT)
+  X0mat_tmp <- model.matrix(iqsb.36 ~ . - 1, data=DAT_reduced)
+  ## Don't use treatment variable in GLMboost
+  X0mat_notrt_tmp <- model.matrix(iqsb.36 ~ .- treat - 1, data=DAT_reduced)
+  
+  tmp_lm <- lm(iqsb.36 ~., data=DAT)
+  tmp_reduced_lm <- lm(iqsb.36 ~., data=DAT_reduced)
+  tmp_glmnet <- cv.glmnet(Xmat_tmp, DAT$iqsb.36, family = "gaussian", nfolds = 5)
+  tmp_reduced_glmnet <- cv.glmnet(X0mat_tmp, DAT$iqsb.36, family = "gaussian", nfolds = 5)
+  
+  tmp_glmboost <- glmboost(x=Xmat_tmp, y=DAT$iqsb.36, family = Gaussian())
+  
+  f0fn <- function(tau) {
+    Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
+    fit_reduced <- glmboost(x=X0mat_notrt_tmp, y=Wtau,family = Gaussian())
+    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+    return(mse_local)
+  }
+  tau.star.gboost <- optimize(f0fn, interval=c(-5, 5))$minimum
+  Wtau.star <- DAT_reduced$iqsb.36 - tau.star.gboost*DAT_reduced$treat
+  tmp_reduced_glmboost <- glmboost(x=X0mat_notrt_tmp, y = Wtau.star,family = Gaussian())
+  
+  tmp_bart <- bart(x.train=Xmat_tmp, y.train=DAT$iqsb.36,
+                   ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  f00fn <- function(tau) {
+    Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
+    fit_reduced <- bart(x.train=X0mat_notrt_tmp, y.train=Wtau, ntree=50L, numcut=10L,
+                        nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+    return(mse_local)
+  }
+  tau.star.bart <- optimize(f00fn, interval=c(-5, 5))$minimum
+  Wtau.star <- DAT_reduced$iqsb.36 - tau.star.bart*DAT_reduced$treat
+  tmp_reduced_bart <- bart(x.train=X0mat_notrt_tmp, y.train = Wtau.star, ntree=50L, numcut=10L, nskip=100L,
+                           ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  
+  ## Now, evaluate MSE difference on a much larger "future" dataset
+  
+  
+  #######################################################
+  ###. Getting confidence intervals and h-values
+  ######################################################
+  naive.trt.effect <- mean(Y[A==1]) - mean(Y[A==0])
+  tau.range <- sort(c(-5*naive.trt.effect, 5*naive.trt.effect))
+  XX <- data.frame(model.matrix(Y ~ x1 + x2 + A + A:x1 + A:x2 - 1))
+  XX0 <- data.frame(model.matrix(Y ~ x1 + x2 - 1))
+  ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=linear_regression_funs,
+                      n_folds = n_folds, reps  = nested_cv_reps)
+  
+  ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmnet_funs,
+                       n_folds = n_folds, reps  = nested_cv_reps)
+  
+  ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
+                         n_folds = n_folds, reps  = nested_cv_reps)
+  
+  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bart_funs,
+  #                       n_folds = n_folds, reps  = nested_cv_reps)
+  ############################################
+  ### Record Results
+  ############################################
+  cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
+  CI_lm[h,1] <- ncv_lm$ci_lo
+  CI_lm[h,2] <- ncv_lm$ci_hi
+  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_bart)
+  hvalue_lm[h] <- ncv_lm$hvalue
+  
+  cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
+  CI_glmnet[h,1] <- ncv_net$ci_lo
+  CI_glmnet[h,2] <- ncv_net$ci_hi
+  hvalue_glmnet[h] <- ncv_net$hvalue
+  
+  cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
+  CI_glmboost[h,1] <- ncv_boost$ci_lo
+  CI_glmboost[h,2] <- ncv_boost$ci_hi
+  hvalue_glmboost[h] <- ncv_boost$hvalue
+  
+  #cover_bart[h] <- theta_bart > ncv_bart$ci_lo & theta_bart < ncv_bart$ci_hi
+  #CI_bart[h,1] <- ncv_bart$ci_lo
+  #CI_bart[h,2] <- ncv_bart$ci_hi
+  #hvalue_bart[h] <- ncv_bart$hvalue
+  cat("Simulation Replication: ", h, "\n")
+}
+## Save: cover_lm, cover_glmnet, cover_glmboost, cover_bart
+##       CI_lm, CI_glmnet, CI_glmboost, CI_bart
+##      hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_bart
+
