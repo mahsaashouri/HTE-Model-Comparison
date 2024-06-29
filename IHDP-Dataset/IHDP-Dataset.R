@@ -119,16 +119,16 @@ for(h in 1:nreps) {
   XX <- data.frame(model.matrix(iqsb.36 ~. - 1, data = DAT))
   XX0 <- data.frame(model.matrix(iqsb.36 ~. - treat - 1, data = DAT_reduced))
   
-  ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=linear_regression_funs,
+  ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=linear_regression_funs,
                       n_folds = n_folds, reps  = nested_cv_reps)
   
-  ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=glmnet_funs,
+  ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=glmnet_funs,
                        n_folds = n_folds, reps  = nested_cv_reps)
   
-  ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=glmboost_funs,
+  ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps  = nested_cv_reps)
   
-  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=bart_funs,
+  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=bart_funs,
   #                       n_folds = n_folds, reps  = nested_cv_reps)
   ############################################
   ### Record Results
