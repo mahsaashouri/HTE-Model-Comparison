@@ -109,27 +109,26 @@ for(h in 1:nreps) {
   Wtau.star <- DAT_reduced$iqsb.36 - tau.star.bart*DAT_reduced$treat
   tmp_reduced_bart <- bart(x.train=X0mat_notrt_tmp, y.train = Wtau.star, ntree=50L, numcut=10L, nskip=100L,
                            ndpost=500L, keeptrees=TRUE, verbose=FALSE)
-  
-  ## Now, evaluate MSE difference on a much larger "future" dataset
-  
+
   
   #######################################################
   ###. Getting confidence intervals and h-values
   ######################################################
-  naive.trt.effect <- mean(Y[A==1]) - mean(Y[A==0])
+  naive.trt.effect <- mean(DAT$iqsb.36[DAT$treat==1]) - mean(DAT$iqsb.36[DAT$treat==0])
   tau.range <- sort(c(-5*naive.trt.effect, 5*naive.trt.effect))
-  XX <- data.frame(model.matrix(Y ~ x1 + x2 + A + A:x1 + A:x2 - 1))
-  XX0 <- data.frame(model.matrix(Y ~ x1 + x2 - 1))
-  ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=linear_regression_funs,
+  XX <- data.frame(model.matrix(iqsb.36 ~. - 1, data = DAT))
+  XX0 <- data.frame(model.matrix(iqsb.36 ~. - treat - 1, data = DAT_reduced))
+  
+  ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=linear_regression_funs,
                       n_folds = n_folds, reps  = nested_cv_reps)
   
-  ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmnet_funs,
+  ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=glmnet_funs,
                        n_folds = n_folds, reps  = nested_cv_reps)
   
-  ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
+  ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps  = nested_cv_reps)
   
-  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bart_funs,
+  #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(iqsb.36), Trt=treat, tau.range=tau.range, funcs=bart_funs,
   #                       n_folds = n_folds, reps  = nested_cv_reps)
   ############################################
   ### Record Results
@@ -137,7 +136,7 @@ for(h in 1:nreps) {
   cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
   CI_lm[h,1] <- ncv_lm$ci_lo
   CI_lm[h,2] <- ncv_lm$ci_hi
-  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_bart)
+  #true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_bart)
   hvalue_lm[h] <- ncv_lm$hvalue
   
   cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
