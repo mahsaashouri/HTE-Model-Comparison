@@ -171,5 +171,13 @@ ggplot(data_hvalues, aes(x = value, fill = group)) +
   geom_histogram(position = "identity", alpha = 0.7, bins = 20, color = 'darkgray') +
   labs(x = "h-value", y = "Frequency") +
   scale_fill_manual(values = c("darkblue", "darkgray", "darkgreen"), name = "Methods") +
-  theme_minimal()
+  theme_minimal()+
+  theme(
+    text = element_text(size = 20),  
+    axis.title = element_text(size = 22), 
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 24), 
+    legend.text = element_text(size = 20) 
+  )
 
