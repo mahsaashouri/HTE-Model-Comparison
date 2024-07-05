@@ -34,8 +34,8 @@ mu <- function(choice, x){
     return(f2(x))
   else if (choice == 3) 
     return(f3(x))
-  #else if (choice == 4) 
-  #  return(f4(x))
+  else if (choice == 4) 
+    return(f4(x))
   else
     stop("Invalid choice for mu")
 }
@@ -49,9 +49,9 @@ theta <- function(choice, x) {
     return(2 + 0.1/(1 + exp(-x[, 2])))
   } else if (choice == 4) {
     return(f1(x))
-  } #else if (choice == 5) {
-  #return(f2(x))
-  #} 
+  } else if (choice == 5) {
+  return(f2(x))
+  } 
   else {
     stop("Invalid choice for tau")
   }
@@ -116,8 +116,8 @@ for(h in 1:nreps) {
   A <- rbinom(n, size = 1, prob = 0.5)
   
   # Generate outcome variable Y
-  mu_new <- mu(2, x) 
-  theta_new <- theta(2, x) 
+  mu_new <- mu(1, x) 
+  theta_new <- theta(5, x) 
   
   # Generate residuals and outcomes
   epsilon <- rnorm(n, mean = 0, sd = 1)

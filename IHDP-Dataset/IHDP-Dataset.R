@@ -133,18 +133,18 @@ for(h in 1:nreps) {
   ############################################
   ### Record Results
   ############################################
-  cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
+  #cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
   CI_lm[h,1] <- ncv_lm$ci_lo
   CI_lm[h,2] <- ncv_lm$ci_hi
   #true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_bart)
   hvalue_lm[h] <- ncv_lm$hvalue
   
-  cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
+  #cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
   CI_glmnet[h,1] <- ncv_net$ci_lo
   CI_glmnet[h,2] <- ncv_net$ci_hi
   hvalue_glmnet[h] <- ncv_net$hvalue
   
-  cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
+  #cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
   CI_glmboost[h,1] <- ncv_boost$ci_lo
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
@@ -158,4 +158,18 @@ for(h in 1:nreps) {
 ## Save: cover_lm, cover_glmnet, cover_glmboost, cover_bart
 ##       CI_lm, CI_glmnet, CI_glmboost, CI_bart
 ##      hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_bart
+
+
+# histogram - h-values
+data_hvalues <- data.frame(
+  value = c(numeric_hvalue_linear, numeric_hvalue_glmnet, numeric_hvalue_glmboost),
+  group = factor(rep(c("linear", "glmnet", "glmboost"), each = 500), levels = c("linear", "glmnet", "glmboost"))
+)
+
+# Plot the overlapping histograms
+ggplot(data_hvalues, aes(x = value, fill = group)) +
+  geom_histogram(position = "identity", alpha = 0.7, bins = 20, color = 'darkgray') +
+  labs(x = "h-value", y = "Frequency") +
+  scale_fill_manual(values = c("darkblue", "darkgray", "darkgreen"), name = "Methods") +
+  theme_minimal()
 
