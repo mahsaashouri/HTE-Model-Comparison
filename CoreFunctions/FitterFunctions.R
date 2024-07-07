@@ -107,6 +107,28 @@ fitter_bart <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
+fitter_rf <- function(X, X0, Y, Trt, tau.range, idx = NA) {
+  if(sum(is.na(idx)) > 0) {
+    idx <- 1:nrow(X)
+  }
+  data.all <- cbind.data.frame(X[idx, ], Y = Y[idx])
+  fit <- randomForest(Y ~., data = data.all, maxnodes=16, ntree=100)
+  
+  
+  data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx])
+  f0fn <- function(tau) {
+    data.reduced$Y <- Y[idx] - tau*Trt[idx]
+    #data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau*Trt[idx])
+    fit_reduced <- randomForest(Y ~., data = data.reduced, maxnodes=16, ntree=100)
+    mse_local <- mean((data.reduced$Y - fit_reduced$predicted)^2)
+    return(mse_local)
+  }
+  tau.star <- optimize(f0fn, interval=tau.range)$minimum
+  data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau.star*Trt[idx])
+  fit_reduced <- randomForest(Y ~., data = data.reduced, maxnodes=16, ntree=100)
+  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
+}
+
 
 ### Predictor Functions.
 
@@ -133,3 +155,10 @@ predictor_bart <- function(fit, X_new, X0_new, Trt_new) {
   preduced <- colMeans(predict(fit$reduced, newdata = as.matrix(X0_new), ndpost=500L, printevery=1000, verbose=FALSE)) + fit$tau*Trt_new
   return(list(pred_full=pfull, pred_reduced=preduced))
 }
+
+predictor_rf <- function(fit, X_new, X0_new, Trt_new) {
+  pfull <- predict(fit$full, newdata = X_new)
+  preduced <- predict(fit$reduced, newdata=X0_new) + fit$tau*Trt_new
+  return(list(pred_full=pfull, pred_reduced=preduced))
+}
+
