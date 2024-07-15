@@ -113,7 +113,7 @@ for(h in 1:nreps) {
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps  = nested_cv_reps)
   
-  ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=A, tau.range=tau.range, funcs=rf_funs,
+  ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=rf_funs,
                       n_folds = n_folds, reps = 10, bias_reps = 0)
   #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=bart_funs,
   #                       n_folds = n_folds, reps  = nested_cv_reps)
