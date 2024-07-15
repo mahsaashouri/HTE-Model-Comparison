@@ -51,11 +51,11 @@ glmboost_funs <- list(fitter = fitter_glmboost,
                       loss = squared_loss,
                       name = "glmboost")
 
-bart_funs <- list(fitter = fitter_bart,
-                  predictor = predictor_bart,
-                  mse = mse,
-                  loss = squared_loss,
-                  name = "bart")
+rf_funs <- list(fitter = fitter_rf,
+                predictor = predictor_rf,
+                mse = mse,
+                loss = squared_loss,
+                name = "rf")
 
 # Set the number of folds, and
 # number of nested cv replications:
@@ -64,9 +64,9 @@ nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
 nreps <- 500  ## Use nreps = 500 for paper
-cover_lm <- cover_glmnet <- cover_glmboost <- cover_bart <- rep(NA, nreps)
-hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_bart <- rep(NA, nreps)
-CI_lm <- CI_glmnet <- CI_glmboost <- CI_bart <- matrix(NA, nrow=nreps, ncol=2)
+cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
+hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
+CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)
 true_thetas <- matrix(NA, nreps, 4)
 for(h in 1:nreps) {
   
@@ -96,19 +96,17 @@ for(h in 1:nreps) {
   Wtau.star <- DAT_reduced$iqsb.36 - tau.star.gboost*DAT_reduced$treat
   tmp_reduced_glmboost <- glmboost(x=X0mat_notrt_tmp, y = Wtau.star,family = Gaussian())
   
-  tmp_bart <- bart(x.train=Xmat_tmp, y.train=DAT$iqsb.36,
-                   ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
   f00fn <- function(tau) {
-    Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
-    fit_reduced <- bart(x.train=X0mat_notrt_tmp, y.train=Wtau, ntree=50L, numcut=10L,
-                        nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
-    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+    DAT_red$Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
+    
+    fit_reduced <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
+    mse_local <- mean((DAT_red$Wtau - predict(fit_reduced, newdata=DAT_red))^2)
     return(mse_local)
   }
-  tau.star.bart <- optimize(f00fn, interval=c(-5, 5))$minimum
-  Wtau.star <- DAT_reduced$iqsb.36 - tau.star.bart*DAT_reduced$treat
-  tmp_reduced_bart <- bart(x.train=X0mat_notrt_tmp, y.train = Wtau.star, ntree=50L, numcut=10L, nskip=100L,
-                           ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  tau.star.rf <- optimize(f00fn, interval=c(-5, 5))$minimum
+  DAT_red$Wtau <- DAT_reduced$iqsb.36 - tau.star.rf*DAT_reduced$treat
+  ## Is the line below correct?
+  tmp_reduced_rf <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
 
   
   #######################################################
@@ -128,6 +126,8 @@ for(h in 1:nreps) {
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps  = nested_cv_reps)
   
+  ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=A, tau.range=tau.range, funcs=rf_funs,
+                      n_folds = n_folds, reps = 10, bias_reps = 0)
   #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(DAT$iqsb.36), Trt=DAT$treat, tau.range=tau.range, funcs=bart_funs,
   #                       n_folds = n_folds, reps  = nested_cv_reps)
   ############################################
@@ -149,10 +149,10 @@ for(h in 1:nreps) {
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
   
-  #cover_bart[h] <- theta_bart > ncv_bart$ci_lo & theta_bart < ncv_bart$ci_hi
-  #CI_bart[h,1] <- ncv_bart$ci_lo
-  #CI_bart[h,2] <- ncv_bart$ci_hi
-  #hvalue_bart[h] <- ncv_bart$hvalue
+  #cover_rf[h] <- theta_rf > ncv_rf$ci_lo & theta_rf < ncv_rf$ci_hi
+  CI_rf[h,1] <- ncv_rf$ci_lo
+  CI_rf[h,2] <- ncv_rf$ci_hi
+  hvalue_rf[h] <- ncv_rf$hvalue
   cat("Simulation Replication: ", h, "\n")
 }
 ## Save: cover_lm, cover_glmnet, cover_glmboost, cover_bart

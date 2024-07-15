@@ -100,11 +100,11 @@ nested_cv_reps <- 50 ## Use 50 or 100 for paper
 ## Set choice of baseline mu and HTE function theta here:
 
 mu_choice <- 3
-theta_choice <- 4
+theta_choice <- 1
 
 
 ## Set the number of simulation replications
-nreps <- 5  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
 hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)
