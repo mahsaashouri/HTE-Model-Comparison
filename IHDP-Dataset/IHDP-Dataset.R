@@ -82,6 +82,23 @@ for(h in 1:nreps) {
   ## Don't use treatment variable in GLMboost
   X0mat_notrt_tmp <- model.matrix(iqsb.36 ~ .- treat - 1, data=DAT_reduced)
   
+  tmp_lm <- lm(iqsb.36 ~., data=DAT)
+  tmp_reduced_lm <- lm(iqsb.36 ~., data=DAT_reduced)
+  tmp_glmnet <- cv.glmnet(Xmat_tmp, DAT$iqsb.36, family = "gaussian", nfolds = 5)
+  tmp_reduced_glmnet <- cv.glmnet(X0mat_tmp, DAT$iqsb.36, family = "gaussian", nfolds = 5)
+  
+  tmp_glmboost <- glmboost(x=Xmat_tmp, y=DAT$iqsb.36, family = Gaussian())
+  
+  f0fn <- function(tau) {
+    Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
+    fit_reduced <- glmboost(x=X0mat_notrt_tmp, y=Wtau,family = Gaussian())
+    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+    return(mse_local)
+  }
+  tau.star.gboost <- optimize(f0fn, interval=c(-5, 5))$minimum
+  Wtau.star <- DAT_reduced$iqsb.36 - tau.star.gboost*DAT_reduced$treat
+  tmp_reduced_glmboost <- glmboost(x=X0mat_notrt_tmp, y = Wtau.star,family = Gaussian())
+  
   
   f00fn <- function(tau) {
     DAT_red$Wtau <- DAT_reduced$iqsb.36 - tau*DAT_reduced$treat
