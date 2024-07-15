@@ -45,8 +45,8 @@ fit_func <- fit_boost_func(DAT, DAT_reduced)
 
 ngrid <- 40
 GridEnd <-  rbind(c(38, 160), c(0, 1), c(1, 4), c(0, 1), c(0, 1), c(0, 1), c(1, 4), c(1, 8), c(1, 8), c(0, 1))
-ff_full <- matrix(NA, nrow = ngrid, ncol = 3)
-ff_reduced <- matrix(NA, nrow = ngrid, ncol = 3)
+ff_full <- matrix(NA, nrow = ngrid, ncol = 4)
+ff_reduced <- matrix(NA, nrow = ngrid, ncol = 4)
 partial_results_full <- partial_results_reduced <- list()
 for(i in 1:length(Col_ParDep)){
   pp <- seq(GridEnd[i,1], GridEnd[i,2], length.out=ngrid)
@@ -61,18 +61,39 @@ for(i in 1:length(Col_ParDep)){
     Xmat_reduced[,Col_ParDep[i]] <- rep(pp[k], nrow(DAT_reduced))
     
    full_glmboost <- as.numeric(predict(fit_func[[1]], newdata = Xmat_full))
+   full_glmboost_0 <- subset(full_glmboost, Xmat_full[,1] == 0)
+   full_glmboost_1 <- subset(full_glmboost, Xmat_full[,1] == 1)
+   
    reduced_glmboost <- as.numeric(predict(fit_func[[2]], newdata=Xmat_reduced)) + fit_func[[3]]*DAT_reduced$treat
+   reduced_glmboost_0 <- subset(reduced_glmboost, Xmat_full[,1] == 0)
+   reduced_glmboost_1 <- subset(reduced_glmboost, Xmat_full[,1] == 1)
     
-    
-    ff_full[k,1] <- mean(full_glmboost)
-    ff_full[k,2] <- pp[k]
-    ff_full[k,3] <- Col_ParDep[i]
-    ff_reduced[k,1] <- mean(reduced_glmboost)
-    ff_reduced[k,2] <- pp[k]
-    ff_reduced[k,3] <- Col_ParDep[i]
+    ff_full[k,1] <- mean(full_glmboost_0)
+    ff_full[k,2] <- mean(full_glmboost_1)
+    ff_full[k,3] <- pp[k]
+    ff_full[k,4] <- Col_ParDep[i]
+    ff_reduced[k,1] <- mean(reduced_glmboost_0)
+    ff_reduced[k,2] <- mean(reduced_glmboost_1)
+    ff_reduced[k,3] <- pp[k]
+    ff_reduced[k,4] <- Col_ParDep[i]
     print(c(i, k))
   }
   partial_results_full[[length(partial_results_full)+1]] <- ff_full
   partial_results_reduced[[length(partial_results_reduced)+1]] <- ff_reduced
 }
 
+
+df_trt1 <- subset(DAT, treat==1)
+df_trt0 <- subset(DAT, treat==0)
+fit_trt <- as.data.frame(partial_results_reduced[[1]])
+fit_trt_full <- as.data.frame(partial_results_full[[1]])
+
+
+ggplot() + 
+  geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,2])), color = "blue", alpha = 0.5, size = 1.5) +
+  geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,1])), color = "red", alpha = 0.5, size =1.5) +
+  geom_line(data = fit_trt_full, aes(x = as.numeric(fit_trt_full[,3]), y = as.numeric(fit_trt_full[,2])), color = "blue", alpha = 0.5, linetype = 2, size = 1.5) +
+  geom_line(data = fit_trt_full, aes(x = as.numeric(fit_trt_full[,3]), y = as.numeric(fit_trt_full[,1])), color = "red", alpha = 0.5, linetype = 2, size = 1.5) 
+  
