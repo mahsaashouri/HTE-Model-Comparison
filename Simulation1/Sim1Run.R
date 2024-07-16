@@ -213,7 +213,7 @@ for(h in 1:nreps) {
   cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
   CI_lm[h,1] <- ncv_lm$ci_lo
   CI_lm[h,2] <- ncv_lm$ci_hi
-  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_bart)
+  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_rf)
   hvalue_lm[h] <- ncv_lm$hvalue
 
   cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
