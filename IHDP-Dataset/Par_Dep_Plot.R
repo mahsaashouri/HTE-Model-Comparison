@@ -90,8 +90,8 @@ fit_trt_full <- as.data.frame(partial_results_full[[1]])
 
 
 ggplot() + 
-  geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
-  geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
   geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,2])), color = "blue", alpha = 0.5, size = 1.5) +
   geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,1])), color = "red", alpha = 0.5, size =1.5) +
   geom_line(data = fit_trt_full, aes(x = as.numeric(fit_trt_full[,3]), y = as.numeric(fit_trt_full[,2])), color = "blue", alpha = 0.5, linetype = 2, size = 1.5) +
