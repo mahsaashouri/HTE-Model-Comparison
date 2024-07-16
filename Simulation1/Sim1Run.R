@@ -1,7 +1,7 @@
 library(glmnet)
 library(mboost)
 library(dbarts)
-
+library(randomForest)
 ##################################
 ## Simulation Study 1
 ##      Data generated from a linear model with two covariates,
@@ -44,11 +44,17 @@ glmboost_funs <- list(fitter = fitter_glmboost,
                       loss = squared_loss,
                       name = "glmboost")
 
-bart_funs <- list(fitter = fitter_bart,
-                      predictor = predictor_bart,
-                      mse = mse,
-                      loss = squared_loss,
-                      name = "bart")
+rf_funs <- list(fitter = fitter_rf,
+                predictor = predictor_rf,
+                mse = mse,
+                loss = squared_loss,
+                name = "rf")
+
+#bart_funs <- list(fitter = fitter_bart,
+#                      predictor = predictor_bart,
+#                      mse = mse,
+#                      loss = squared_loss,
+#                      name = "bart")
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:
@@ -58,9 +64,9 @@ nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
 nreps <- 500  ## Use nreps = 500 for paper
-cover_lm <- cover_glmnet <- cover_glmboost <- cover_bart <- rep(NA, nreps)
-hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_bart <- rep(NA, nreps)
-CI_lm <- CI_glmnet <- CI_glmboost <- CI_bart <- matrix(NA, nrow=nreps, ncol=2)
+cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
+hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
+CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)
 true_thetas <- matrix(NA, nreps, 4)
 for(h in 1:nreps) {
   # Generate random values for x1 and x2 from a normal distribution
@@ -82,6 +88,8 @@ for(h in 1:nreps) {
   ## First fit each model with the dataset of size n
   DAT <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
   DAT_reduced <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
+  drop_cols <- c(which(colnames(DAT_reduced)=="Y"), which(colnames(DAT_reduced)=="A"))
+  DAT_red <- data.frame(Wtau=DAT_reduced$Y, x)
 
   Xmat_tmp <- model.matrix(Y ~ x1 + x2 + A + A:x1 + A:x2 - 1, data=DAT)
   X0mat_tmp <- model.matrix(Y ~ x1 + x2 + A - 1, data=DAT_reduced)
@@ -107,17 +115,31 @@ for(h in 1:nreps) {
 
   tmp_bart <- bart(x.train=Xmat_tmp, y.train=DAT$Y,
                    ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  
   f00fn <- function(tau) {
-    Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
-    fit_reduced <- bart(x.train=X0mat_notrt_tmp, y.train=Wtau, ntree=50L, numcut=10L,
-                        nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
-    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+    DAT_red$Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
+    
+    fit_reduced <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
+    mse_local <- mean((DAT_red$Wtau - predict(fit_reduced, newdata=DAT_red))^2)
     return(mse_local)
   }
-  tau.star.bart <- optimize(f00fn, interval=c(-5, 5))$minimum
-  Wtau.star <- DAT_reduced$Y - tau.star.bart*DAT_reduced$A
-  tmp_reduced_bart <- bart(x.train=X0mat_notrt_tmp, y.train = Wtau.star, ntree=50L, numcut=10L, nskip=100L,
-                           ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  tau.star.rf <- optimize(f00fn, interval=c(-5, 5))$minimum
+  DAT_red$Wtau <- DAT_reduced$Y - tau.star.rf*DAT_reduced$A
+  ## Is the line below correct?
+  tmp_reduced_rf <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
+  
+  ## BART
+  #f00fn <- function(tau) {
+  #  Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
+  #  fit_reduced <- bart(x.train=X0mat_notrt_tmp, y.train=Wtau, ntree=50L, numcut=10L,
+  #                      nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
+  #  mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
+  #  return(mse_local)
+  #}
+  #tau.star.bart <- optimize(f00fn, interval=c(-5, 5))$minimum
+  #Wtau.star <- DAT_reduced$Y - tau.star.bart*DAT_reduced$A
+  #tmp_reduced_bart <- bart(x.train=X0mat_notrt_tmp, y.train = Wtau.star, ntree=50L, numcut=10L, nskip=100L,
+  #                         ndpost=500L, keeptrees=TRUE, verbose=FALSE)
 
   ## Now, evaluate MSE difference on a much larger "future" dataset
   nr <- 100000
@@ -131,6 +153,7 @@ for(h in 1:nreps) {
 
   DATk <- data.frame('Y' = Yk, 'x1' = x1k, 'x2' = x2k, 'A' = Ak, 'x1.t' = Ak*x1k, 'x2.t' = Ak*x2k)
   DATk_reduced <- data.frame('Y' = Yk, 'x1' = x1k, 'x2' = x2k, 'A' = Ak)
+  DATk_red <- data.frame('Y' = Yk, 'x1' = x1k, 'x2' = x2k)
   Xmat_tmpk <- model.matrix(Y ~ x1 + x2 + A + A:x1 + A:x2 - 1, data=DATk)
   X0mat_tmpk <- model.matrix(Y ~ x1 + x2 + A - 1, data=DATk_reduced)
   X0mat_notrt_tmpk <- model.matrix(Y ~ x1 + x2 - 1, data=DATk_reduced)
@@ -142,14 +165,26 @@ for(h in 1:nreps) {
   pp_full_glmnet <- as.numeric(predict(tmp_glmnet, newx=Xmat_tmpk))
   pp_reduced_glmboost <- as.numeric(predict(tmp_reduced_glmboost, newdata=X0mat_notrt_tmpk)) + tau.star.gboost*DATk_reduced$A
   pp_full_glmboost <- as.numeric(predict(tmp_glmboost, newdata = Xmat_tmpk))
-  pp_reduced_bart <- colMeans(predict(tmp_reduced_bart, newdata=X0mat_notrt_tmpk, ndpost=500L, verbose=FALSE)) + tau.star.bart*DATk_reduced$A
-  pp_full_bart <- colMeans(predict(tmp_bart, newdata=Xmat_tmpk, ndpost=500L, verbose=FALSE))
+  #pp_reduced_rf <- predict(tmp_reduced_rf, newdata=DATk_red) + tau.star.rf*DATk_reduced$A
+  #pp_full_rf <- predict(tmp_rf, newdata=DATk_reduced)
+  new_rf <- fitter_rf(X0mat_tmp, X0mat_notrt_tmp, Y, A, tau.range=c(-5,5), idx = NA)
+  new_rf_pred <- predictor_rf(new_rf, X_new=DATk_reduced, X0_new=DATk_red, Trt_new=DATk_reduced$A)
+  ## BART
+  #pp_reduced_bart <- colMeans(predict(tmp_reduced_bart, newdata=X0mat_notrt_tmpk, ndpost=500L, verbose=FALSE)) + tau.star.bart*DATk_reduced$A
+  #pp_full_bart <- colMeans(predict(tmp_bart, newdata=Xmat_tmpk, ndpost=500L, verbose=FALSE))
+  
+  #A <- cbind(hh$pred_full, pp_full_rf, hh$pred_reduced, pp_reduced_rf)
+  #X0mat_tmp <- model.matrix(Y~.-1, data = DAT_reduced)
+  ## Don't use treatment variable in GLMboost
+  #X0mat_notrt_tmp <- model.matrix(Y ~ . - A - 1, data = DAT_reduced)
+  
+  theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
 
   ## Compute \theta_{XY} by looking at differences in MSE
   theta_lm <- mean((Yk - pp_reduced_lm)^2) - mean((Yk - pp_full_lm)^2)
   theta_glmnet <- mean((Yk - pp_reduced_glmnet)^2) - mean((Yk - pp_full_glmnet)^2)
   theta_glmboost <- mean((Yk - pp_reduced_glmboost)^2) - mean((Yk - pp_full_glmboost)^2)
-  theta_bart <- mean((Yk - pp_reduced_bart)^2) - mean((Yk - pp_full_bart)^2)
+  #theta_bart <- mean((Yk - pp_reduced_bart)^2) - mean((Yk - pp_full_bart)^2)
 
   #######################################################
   ###. Getting confidence intervals and h-values
@@ -166,6 +201,9 @@ for(h in 1:nreps) {
 
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
                     n_folds = n_folds, reps  = nested_cv_reps)
+  
+  ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
+                      n_folds = n_folds, reps = 10, bias_reps = 0)
 
   #ncv_bart <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bart_funs,
   #                       n_folds = n_folds, reps  = nested_cv_reps)
@@ -187,6 +225,11 @@ for(h in 1:nreps) {
   CI_glmboost[h,1] <- ncv_boost$ci_lo
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
+  
+  cover_rf[h] <- theta_rf > ncv_rf$ci_lo & theta_rf < ncv_rf$ci_hi
+  CI_rf[h,1] <- ncv_rf$ci_lo
+  CI_rf[h,2] <- ncv_rf$ci_hi
+  hvalue_rf[h] <- ncv_rf$hvalue
 
   #cover_bart[h] <- theta_bart > ncv_bart$ci_lo & theta_bart < ncv_bart$ci_hi
   #CI_bart[h,1] <- ncv_bart$ci_lo
