@@ -13,7 +13,7 @@ cor_with_output <- cor_matrix[, 1]
 cor_with_output[1] <- 0  # Set the correlation with output to 0
 sorted_correlations <- sort(abs(cor_with_output), decreasing = TRUE)
 top_10_correlations <- sorted_correlations[1:10]
-top_10_predictors <- names(top_10_correlations)
+top_10_predictors <- c(names(top_10_correlations), "momage")
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, top_10_predictors]
 ## reduced model
@@ -21,7 +21,7 @@ output <- DATA[,c('iqsb.36', 'treat')]
 DAT_reduced <- bind_cols(output, selected_data)
 ## full model
 selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
-for(k in 1:10){
+for(k in 1:11){
   selected_data.T[,k] <- selected_data[,k]*output$treat
 }
 colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
@@ -63,10 +63,10 @@ rf_funs <- list(fitter = fitter_rf,
 # Set the number of folds, and
 # number of nested cv replications:
 n_folds <- 5
-nested_cv_reps <- 50 ## Use 50 or 100 for paper
+nested_cv_reps <- 500 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 500  ## Use nreps = 500 for paper
+nreps <- 50  ## Use nreps = 500 for paper
 cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
 hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)

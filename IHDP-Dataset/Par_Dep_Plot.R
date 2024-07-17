@@ -2,13 +2,14 @@
 ## Partial Dependence plots
 ###########################################
 library(mboost)
+library(tidyverse)
 ## IHDP dataset
 DATA <- read.csv('IHDP_clean.csv', header = TRUE)[,-1]
 cor_matrix <- cor(DATA)
 cor_with_output <- cor_matrix[, 1]
 
 
-Col_ParDep <- c('ppvt.imp', 'momwhite', 'momed4F', 'mom.scoll', 'momblack', 'mom.lths', 'b.marry', 'birth.o', 'parity', 'site4')
+Col_ParDep <- c('momage', 'ppvt.imp', 'momwhite', 'momed4F', 'mom.scoll', 'momblack', 'mom.lths', 'b.marry', 'birth.o', 'parity', 'site4')
 Y <-  DATA[,c('iqsb.36')]
 # Subset your data to keep only the top 10 predictor columns
 selected_data <- DATA[, Col_ParDep]
@@ -17,7 +18,7 @@ output <- DATA[,c('iqsb.36', 'treat')]
 DAT_reduced <- bind_cols(output, selected_data)
 ## full model
 selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
-for(k in 1:10){
+for(k in 1:11){
   selected_data.T[,k] <- selected_data[,k]*output$treat
 }
 colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
@@ -44,7 +45,7 @@ fit_func <- fit_boost_func(DAT, DAT_reduced)
 ## Setup 
 
 ngrid <- 40
-GridEnd <-  rbind(c(38, 160), c(0, 1), c(1, 4), c(0, 1), c(0, 1), c(0, 1), c(1, 4), c(1, 8), c(1, 8), c(0, 1))
+GridEnd <-  rbind(c(13,43), c(38, 160), c(0, 1), c(1, 4), c(0, 1), c(0, 1), c(0, 1), c(1, 4), c(1, 8), c(1, 8), c(0, 1))
 ff_full <- matrix(NA, nrow = ngrid, ncol = 4)
 ff_reduced <- matrix(NA, nrow = ngrid, ncol = 4)
 partial_results_full <- partial_results_reduced <- list()
