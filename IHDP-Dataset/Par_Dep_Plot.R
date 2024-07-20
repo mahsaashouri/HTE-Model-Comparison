@@ -86,15 +86,132 @@ for(i in 1:length(Col_ParDep)){
 
 df_trt1 <- subset(DAT, treat==1)
 df_trt0 <- subset(DAT, treat==0)
-fit_trt <- as.data.frame(partial_results_reduced[[1]])
-fit_trt_full <- as.data.frame(partial_results_full[[1]])
 
-
-ggplot() + 
+### Age
+fit_trt_1 <- as.data.frame(partial_results_reduced[[1]])
+fit_trt_full_1 <- as.data.frame(partial_results_full[[1]])
+p1 <- ggplot() + 
   #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
   #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
-  geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,2])), color = "blue", alpha = 0.5, size = 1.5) +
-  geom_line(data = fit_trt, aes(x = as.numeric(fit_trt[,3]), y = as.numeric(fit_trt[,1])), color = "red", alpha = 0.5, size =1.5) +
-  geom_line(data = fit_trt_full, aes(x = as.numeric(fit_trt_full[,3]), y = as.numeric(fit_trt_full[,2])), color = "blue", alpha = 0.5, linetype = 2, size = 1.5) +
-  geom_line(data = fit_trt_full, aes(x = as.numeric(fit_trt_full[,3]), y = as.numeric(fit_trt_full[,1])), color = "red", alpha = 0.5, linetype = 2, size = 1.5) 
-  
+  geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_1, aes(x = as.numeric(fit_trt_full_1[,3]), y = as.numeric(fit_trt_full_1[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_1, aes(x = as.numeric(fit_trt_full_1[,3]), y = as.numeric(fit_trt_full_1[,1]), color = "Treatment 0", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  labs(x = "Age", y = "Predicted IQ at 36 months", color = "Treatment", linetype = "Method") +
+  scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
+  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 20),  
+    axis.title = element_text(size = 22), 
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 24), 
+    legend.text = element_text(size = 20),
+    legend.position = "bottom" 
+  )
+
+### ppvt.imp
+fit_trt_2 <- as.data.frame(partial_results_reduced[[2]])
+fit_trt_full_2 <- as.data.frame(partial_results_full[[2]])
+p2 <- ggplot() + 
+  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_2, aes(x = as.numeric(fit_trt_full_2[,3]), y = as.numeric(fit_trt_full_2[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_2, aes(x = as.numeric(fit_trt_full_2[,3]), y = as.numeric(fit_trt_full_2[,1]), color = "Treatment 0", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  labs(x = "PPVT", y = "", color = "Treatment", linetype = "Method") +
+  scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
+  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 20),  
+    axis.title = element_text(size = 22), 
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 24), 
+    legend.text = element_text(size = 20),
+    legend.position = "bottom" 
+  )
+
+## birth.o
+fit_trt_3 <- as.data.frame(partial_results_reduced[[9]])
+fit_trt_full_3 <- as.data.frame(partial_results_full[[9]])
+p3 <- ggplot() + 
+  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_3, aes(x = as.numeric(fit_trt_full_3[,3]), y = as.numeric(fit_trt_full_3[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_3, aes(x = as.numeric(fit_trt_full_3[,3]), y = as.numeric(fit_trt_full_3[,1]), color = "Treatment 0", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  labs(x = "Birth order", y = "Predicted IQ at 36 months", color = "Treatment", linetype = "Method") +
+  scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
+  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 20),  
+    axis.title = element_text(size = 22), 
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 24), 
+    legend.text = element_text(size = 20),
+    legend.position = "bottom" 
+  )
+
+## parity
+
+fit_trt_4 <- as.data.frame(partial_results_reduced[[10]])
+fit_trt_full_4 <- as.data.frame(partial_results_full[[10]])
+p4 <- ggplot() + 
+  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,1]), color = "Treatment 0", linetype = "Restricted"), alpha = 0.5, size = 1) +
+  labs(x = "Number of childeren", y = "", color = "Treatment", linetype = "Method") +
+  scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
+  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 22),  
+    axis.title = element_text(size = 24), 
+    axis.text = element_text(size = 22),
+    plot.title = element_text(size = 18, face = "bold"), 
+    legend.title = element_text(size = 26), 
+    legend.text = element_text(size = 22),
+    legend.position = "bottom" 
+  )
+
+# Install and load the patchwork package if you haven't already
+# install.packages("patchwork")
+library(patchwork)
+
+
+# Remove the legends from individual plots
+p1 <- p1 + theme(legend.position = "none")
+p2 <- p2 + theme(legend.position = "none")
+p3 <- p3 + theme(legend.position = "none")
+p4 <- p4 + theme(legend.position = "none")
+
+# Extract legend from one of the plots
+get_legend <- function(plot) {
+  g <- ggplotGrob(plot)
+  legend <- g$grobs[which(g$layout$name == "guide-box")]
+  legend
+}
+
+legend <- get_legend(p1)
+
+# Combine plots without individual legends
+combined_plot <- (p1 + p2) / (p3 + p4) + 
+  plot_layout(guides = 'collect') &
+  theme(
+    legend.position = 'bottom',
+    legend.title = element_text(size = 26),
+    legend.text = element_text(size = 22)
+  )
+
+# Print the combined plot with the legend
+print(combined_plot)
