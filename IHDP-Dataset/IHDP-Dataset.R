@@ -166,13 +166,13 @@ for(h in 1:nreps) {
 
 # histogram - h-values
 data_hvalues <- data.frame(
-  value = c(numeric_hvalue_linear, numeric_hvalue_glmnet, numeric_hvalue_glmboost, numeric_hvalue_rf),
-  group = factor(rep(c("linear", "glmnet", "glmboost", "random forest"), each = 500), levels = c("linear", "glmnet", "glmboost", "random forest"))
+  value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf),
+  group = factor(rep(c("linear", "glmnet", "glmboost", "random forest"), each = 50), levels = c("linear", "glmnet", "glmboost", "random forest"))
 )
 
 # Plot the overlapping histograms
 ggplot(data_hvalues, aes(x = value, fill = group)) +
-  geom_histogram(position = "identity", alpha = 0.5, bins = 25, color = 'darkgray') +
+  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray') +
   labs(x = "h-value", y = "Frequency") +
   scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4", "darkgoldenrod"), name = "Methods") +
   theme_minimal()+
