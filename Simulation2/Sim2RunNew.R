@@ -59,8 +59,8 @@ theta <- function(choice, x) {
 
 
 ## Source fitting and nested cv functions
-setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
-#setwd("~/Documents/HTEevaluation/HTE-Model-Comparison")
+#setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
+setwd("~/Documents/HTEevaluation/HTE-Model-Comparison")
 source("CoreFunctions/CVDiffFunctions.R")
 source("CoreFunctions/FitterFunctions.R")
 
@@ -99,9 +99,8 @@ nested_cv_reps <- 50 ## Use 50 or 100 for paper
 ################################################################
 ## Set choice of baseline mu and HTE function theta here:
 
-mu_choice <- 3
-theta_choice <- 1
-
+mu_choice <- 1
+theta_choice <- 4
 
 ## Set the number of simulation replications
 nreps <- 500  ## Use nreps = 500 for paper
@@ -122,19 +121,19 @@ for(h in 1:nreps) {
   colnames(x) <-paste0("X", 1:p)
   # Generate treatment indicator A
   A <- rbinom(n, size = 1, prob = 0.5)
-
+  
   # Generate outcome variable Y
   mu_new <- mu(mu_choice, x)
   theta_new <- theta(theta_choice, x)
-
+  
   # Generate residuals and outcomes
   epsilon <- rnorm(n, mean = 0, sd = 1)
-
+  
   Y <- numeric(n)
   for (i in 1:n) {
     Y[i] <- mu_new[i] + A[i] * theta_new[i] + epsilon[i]
   }
-
+  
   x.t <- matrix(NA, nrow = nrow(x), ncol = ncol(x))
   for(k in 1:ncol(x)){
     x.t[,k] <- x[,k]*A
@@ -143,51 +142,59 @@ for(h in 1:nreps) {
   ######################
   ## Compute true value of \theta_{XY} for each method
   ######################
-
+  
   ## First fit each model with the dataset of size n
   DAT <- data.frame('Y' = Y, 'A' = A, x, x.t)
   DAT_reduced <- data.frame('Y' = Y, 'A' = A, x)
   drop_cols <- c(which(colnames(DAT_reduced)=="Y"), which(colnames(DAT_reduced)=="A"))
   DAT_red <- data.frame(Wtau=DAT_reduced$Y, x)
-
+  
   Xmat_tmp <- model.matrix(Y~.-1, data = DAT)
   X0mat_tmp <- model.matrix(Y~.-1, data = DAT_reduced)
   ## Don't use treatment variable in GLMboost
   X0mat_notrt_tmp <- model.matrix(Y ~ . - A - 1, data = DAT_reduced)
-
+  
   tmp_lm <- lm(Y ~., data=DAT)
   tmp_reduced_lm <- lm(Y ~., data=DAT_reduced)
   tmp_glmnet <- cv.glmnet(Xmat_tmp, DAT$Y, family = "gaussian", nfolds = 5)
-  tmp_reduced_glmnet <- cv.glmnet(X0mat_tmp, DAT$Y, family = "gaussian", nfolds = 5)
-
+  
+  f01fn <- function(tau) {
+    Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
+    fit_reduced <- cv.glmnet(X0mat_notrt_tmp, Wtau, family = "gaussian", nfolds = 5)
+    mse_local <- mean((Wtau - predict(fit_reduced, newx=X0mat_notrt_tmp))^2)
+    return(mse_local)
+  }
+  tau.star.glmnet <- optimize(f01fn, interval=c(-20, 20))$minimum
+  
+  Wtau.star <- DAT_reduced$Y - tau.star.glmnet*DAT_reduced$A
+  tmp_reduced_glmnet <- cv.glmnet(X0mat_notrt_tmp, Wtau.star, family = "gaussian", nfolds = 5)
+  
   tmp_glmboost <- glmboost(x=Xmat_tmp, y=DAT$Y, family = Gaussian())
-
   f0fn <- function(tau) {
     Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
     fit_reduced <- glmboost(x=X0mat_notrt_tmp, y=Wtau,family = Gaussian())
     mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat_notrt_tmp))^2)
     return(mse_local)
   }
-  ## change
-  tau.star.gboost <- optimize(f0fn, interval=c(-5, 5))$minimum
+  tau.star.gboost <- optimize(f0fn, interval=c(-20, 20))$minimum
   Wtau.star <- DAT_reduced$Y - tau.star.gboost*DAT_reduced$A
   tmp_reduced_glmboost <- glmboost(x=X0mat_notrt_tmp, y = Wtau.star,family = Gaussian())
-
+  
   f00fn <- function(tau) {
     DAT_red$Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
-
+    
     fit_reduced <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
     mse_local <- mean((DAT_red$Wtau - predict(fit_reduced, newdata=DAT_red))^2)
     return(mse_local)
   }
-  tau.star.rf <- optimize(f00fn, interval=c(-5, 5))$minimum
+  tau.star.rf <- optimize(f00fn, interval=c(-20, 20))$minimum
   DAT_red$Wtau <- DAT_reduced$Y - tau.star.rf*DAT_reduced$A
   ## Is the line below correct?
   tmp_reduced_rf <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
-
+  
   ## Now, evaluate MSE difference on a much larger "future" dataset
   nr <- 1000000
-
+  
   ## Generating future observations:
   epsilon_future <- rnorm(nr, mean = 0, sd = 1)
   xk <- matrix(0, nrow = nr, ncol = p)
@@ -200,50 +207,42 @@ for(h in 1:nreps) {
   }
   colnames(xk) <-paste0("X", 1:p)
   Ak <- rbinom(nr, size = 1, prob = 0.5)
-
+  
   mu_future <- mu(mu_choice, xk)
   theta_future <- theta(theta_choice, xk)
   Yk <- mu_future + Ak*theta_future + epsilon_future
-
+  
   x.tk <- matrix(NA, nrow = nrow(xk), ncol = ncol(xk))
   for(k in 1:ncol(xk)){
     x.tk[,k] <- xk[,k]*Ak
   }
   colnames(x.tk) <- paste0(colnames(xk), ".t")
-
+  
   DATk <- data.frame('Y' = Yk, 'A' = Ak, xk, x.tk)
   DATk_reduced <- data.frame('Y' = Yk, 'A' = Ak, xk)
   DATk_red <- data.frame('Y' = Yk, xk)
   Xmat_tmpk <- model.matrix(Y~.-1, data = DATk)
   X0mat_tmpk <- model.matrix(Y~.-1, data = DATk_reduced)
   X0mat_notrt_tmpk <- model.matrix(Y ~ . - A - 1, data = DATk_reduced)
-
+  
   ## Getting predictions for these future observations
   pp_reduced_lm <- predict(tmp_reduced_lm, newdata=DATk_reduced)
   pp_full_lm <- predict(tmp_lm, newdata=DATk)
-  pp_reduced_glmnet <- as.numeric(predict(tmp_reduced_glmnet, newx=X0mat_tmpk))
+  pp_reduced_glmnet <- as.numeric(predict(tmp_reduced_glmnet, newx=X0mat_notrt_tmpk)) + tau.star.glmnet*DATk_reduced$A
   pp_full_glmnet <- as.numeric(predict(tmp_glmnet, newx=Xmat_tmpk))
   pp_reduced_glmboost <- as.numeric(predict(tmp_reduced_glmboost, newdata=X0mat_notrt_tmpk)) + tau.star.gboost*DATk_reduced$A
   pp_full_glmboost <- as.numeric(predict(tmp_glmboost, newdata = Xmat_tmpk))
   #pp_reduced_rf <- predict(tmp_reduced_rf, newdata=DATk_red) + tau.star.rf*DATk_reduced$A
   #pp_full_rf <- predict(tmp_rf, newdata=DATk_reduced)
-  new_rf <- fitter_rf(X0mat_tmp, X0mat_notrt_tmp, Y, A, tau.range=c(-5,5), idx = NA)
+  new_rf <- fitter_rf(X0mat_tmp, X0mat_notrt_tmp, Y, A, tau.range=c(-20,20), idx = NA)
   new_rf_pred <- predictor_rf(new_rf, X_new=DATk_reduced, X0_new=DATk_red, Trt_new=DATk_reduced$A)
-
-  #A <- cbind(hh$pred_full, pp_full_rf, hh$pred_reduced, pp_reduced_rf)
-  #X0mat_tmp <- model.matrix(Y~.-1, data = DAT_reduced)
-  ## Don't use treatment variable in GLMboost
-  #X0mat_notrt_tmp <- model.matrix(Y ~ . - A - 1, data = DAT_reduced)
-
-  theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
-  #mean(squared_loss(hh$pred_full, pp_reduced_rf, Yk))
-
+  
   ## Compute \theta_{XY} by looking at differences in MSE
   theta_lm <- mean((Yk - pp_reduced_lm)^2) - mean((Yk - pp_full_lm)^2)
   theta_glmnet <- mean((Yk - pp_reduced_glmnet)^2) - mean((Yk - pp_full_glmnet)^2)
   theta_glmboost <- mean((Yk - pp_reduced_glmboost)^2) - mean((Yk - pp_full_glmboost)^2)
-  #theta_rf <- mean((Yk - pp_reduced_rf)^2) - mean((Yk - pp_full_rf)^2)
-
+  theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
+  
   #######################################################
   ###. Getting confidence intervals and h-values
   ######################################################
@@ -253,18 +252,16 @@ for(h in 1:nreps) {
   XX0 <- data.frame(model.matrix(Y ~. - A - 1, data = DAT_reduced))
   ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=linear_regression_funs,
                       n_folds = n_folds, reps  = nested_cv_reps)
-
+  
   ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmnet_funs,
                        n_folds = n_folds, reps  = nested_cv_reps)
-
+  
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps  = nested_cv_reps)
-
+  
   ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
-                      n_folds = n_folds, reps = 10, bias_reps = 0)
-  #ncv_rff <- naive_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
-  #                    n_folds = 10)
-
+                      n_folds = n_folds, reps = 10, bias_reps=10)
+  
   ############################################
   ### Record Results
   ############################################
@@ -273,22 +270,22 @@ for(h in 1:nreps) {
   CI_lm[h,2] <- ncv_lm$ci_hi
   true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_rf)
   hvalue_lm[h] <- ncv_lm$hvalue
-
+  
   cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
   CI_glmnet[h,1] <- ncv_net$ci_lo
   CI_glmnet[h,2] <- ncv_net$ci_hi
   hvalue_glmnet[h] <- ncv_net$hvalue
-
+  
   cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
   CI_glmboost[h,1] <- ncv_boost$ci_lo
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
-
+  
   cover_rf[h] <- theta_rf > ncv_rf$ci_lo & theta_rf < ncv_rf$ci_hi
   CI_rf[h,1] <- ncv_rf$ci_lo
   CI_rf[h,2] <- ncv_rf$ci_hi
   hvalue_rf[h] <- ncv_rf$hvalue
-
+  
   cat("Simulation Replication: ", h, "\n")
 }
 ## Save: cover_lm, cover_glmnet, cover_glmboost, cover_rf
