@@ -17,12 +17,13 @@ selected_data <- DATA[, Col_ParDep]
 output <- DATA[,c('iqsb.36', 'treat')]
 DAT_reduced <- bind_cols(output, selected_data)
 ## full model
-selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
-for(k in 1:11){
-  selected_data.T[,k] <- selected_data[,k]*output$treat
-}
-colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
-DAT <- bind_cols(output, selected_data, selected_data.T)
+#selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
+#for(k in 1:11){
+#  selected_data.T[,k] <- selected_data[,k]*output$treat
+#}
+#colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
+#DAT <- bind_cols(output, selected_data, selected_data.T)
+DAT <- bind_cols(output, selected_data)
 
 fit_boost_func <- function(data_full, data_reduced){
   Xmat_tmp <- model.matrix(iqsb.36 ~ . - 1, data=data_full)
@@ -53,11 +54,9 @@ for(i in 1:length(Col_ParDep)){
   pp <- seq(GridEnd[i,1], GridEnd[i,2], length.out=ngrid)
   for(k in 1:ngrid){
     
-    #Xmat_full <- bind_cols(selected_data, selected_data.T)
     Xmat_full <- model.matrix(iqsb.36 ~ .-1, data = DAT)
     Xmat_full[,Col_ParDep[i]] <- rep(pp[k], nrow(DAT))
     
-    #Xmat_reduced <- selected_data
     Xmat_reduced <- model.matrix(iqsb.36 ~ .-treat-1, data = DAT_reduced)
     Xmat_reduced[,Col_ParDep[i]] <- rep(pp[k], nrow(DAT_reduced))
     
@@ -91,8 +90,8 @@ df_trt0 <- subset(DAT, treat==0)
 fit_trt_1 <- as.data.frame(partial_results_reduced[[1]])
 fit_trt_full_1 <- as.data.frame(partial_results_full[[1]])
 p1 <- ggplot() + 
-  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
-  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt1, aes(x = momage, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt0, aes(x = momage, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
   geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_full_1, aes(x = as.numeric(fit_trt_full_1[,3]), y = as.numeric(fit_trt_full_1[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
@@ -115,8 +114,8 @@ p1 <- ggplot() +
 fit_trt_2 <- as.data.frame(partial_results_reduced[[2]])
 fit_trt_full_2 <- as.data.frame(partial_results_full[[2]])
 p2 <- ggplot() + 
-  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
-  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
   geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_full_2, aes(x = as.numeric(fit_trt_full_2[,3]), y = as.numeric(fit_trt_full_2[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
@@ -139,8 +138,8 @@ p2 <- ggplot() +
 fit_trt_3 <- as.data.frame(partial_results_reduced[[9]])
 fit_trt_full_3 <- as.data.frame(partial_results_full[[9]])
 p3 <- ggplot() + 
-  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
-  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt1, aes(x = birth.o, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt0, aes(x = birth.o, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
   geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_full_3, aes(x = as.numeric(fit_trt_full_3[,3]), y = as.numeric(fit_trt_full_3[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
@@ -164,8 +163,8 @@ p3 <- ggplot() +
 fit_trt_4 <- as.data.frame(partial_results_reduced[[10]])
 fit_trt_full_4 <- as.data.frame(partial_results_full[[10]])
 p4 <- ggplot() + 
-  #geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
-  #geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt1, aes(x = parity, y = iqsb.36), color = "blue", alpha = 0.5, size = 2) +
+  geom_point(data = df_trt0, aes(x = parity, y = iqsb.36), color = "red", alpha = 0.5, size = 2) +
   geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,2]), color = "Treatment 1", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,1]), color = "Treatment 0", linetype = "Unrestricted"), alpha = 0.5, size = 1) +
   geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,2]), color = "Treatment 1", linetype = "Restricted"), alpha = 0.5, size = 1) +
