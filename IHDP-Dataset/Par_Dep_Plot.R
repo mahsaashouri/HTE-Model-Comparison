@@ -90,15 +90,15 @@ df_trt0 <- subset(DAT, treat==0)
 fit_trt_1 <- as.data.frame(partial_results_reduced[[1]])
 fit_trt_full_1 <- as.data.frame(partial_results_full[[1]])
 p1 <- ggplot() +
-  geom_point(data = df_trt1, aes(x = momage, y = iqsb.36), color = "blue", alpha = 0.3, size = 2) +
-  geom_point(data = df_trt0, aes(x = momage, y = iqsb.36), color = "red", alpha = 0.3, size = 2) +
+  geom_point(data = df_trt1, aes(x = momage, y = iqsb.36), color = "blue", alpha = 0.2, size = 2) +
+  geom_point(data = df_trt0, aes(x = momage, y = iqsb.36), color = "red", alpha = 0.2, size = 2) +
   geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,2]), color = "Treatment 1", linetype = "Unrestricted"), size = 1) +
   geom_line(data = fit_trt_1, aes(x = as.numeric(fit_trt_1[,3]), y = as.numeric(fit_trt_1[,1]), color = "Treatment 0", linetype = "Unrestricted"), size = 1) +
   geom_line(data = fit_trt_full_1, aes(x = as.numeric(fit_trt_full_1[,3]), y = as.numeric(fit_trt_full_1[,2]), color = "Treatment 1", linetype = "Restricted"), size = 1) +
   geom_line(data = fit_trt_full_1, aes(x = as.numeric(fit_trt_full_1[,3]), y = as.numeric(fit_trt_full_1[,1]), color = "Treatment 0", linetype = "Restricted"), size = 1) +
   labs(x = "Age", y = "Predicted IQ at 36 months", color = "Treatment", linetype = "Method") +
   scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
-  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  scale_linetype_manual(values = c("Restricted" = "dotdash", "Unrestricted" = "solid")) +
   theme_minimal()+
   theme(
     text = element_text(size = 20),
@@ -114,15 +114,15 @@ p1 <- ggplot() +
 fit_trt_2 <- as.data.frame(partial_results_reduced[[2]])
 fit_trt_full_2 <- as.data.frame(partial_results_full[[2]])
 p2 <- ggplot() +
-  geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.3, size = 2) +
-  geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.3, size = 2) +
+  geom_point(data = df_trt1, aes(x = ppvt.imp, y = iqsb.36), color = "blue", alpha = 0.2, size = 2) +
+  geom_point(data = df_trt0, aes(x = ppvt.imp, y = iqsb.36), color = "red", alpha = 0.2, size = 2) +
   geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,2]), color = "Treatment 1", linetype = "Unrestricted"), size = 1) +
   geom_line(data = fit_trt_2, aes(x = as.numeric(fit_trt_2[,3]), y = as.numeric(fit_trt_2[,1]), color = "Treatment 0", linetype = "Unrestricted"), size = 1) +
   geom_line(data = fit_trt_full_2, aes(x = as.numeric(fit_trt_full_2[,3]), y = as.numeric(fit_trt_full_2[,2]), color = "Treatment 1", linetype = "Restricted"), size = 1) +
   geom_line(data = fit_trt_full_2, aes(x = as.numeric(fit_trt_full_2[,3]), y = as.numeric(fit_trt_full_2[,1]), color = "Treatment 0", linetype = "Restricted"), size = 1) +
   labs(x = "PPVT", y = "", color = "Treatment", linetype = "Method") +
   scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
-  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  scale_linetype_manual(values = c("Restricted" = "dotdash", "Unrestricted" = "solid")) +
   theme_minimal()+
   theme(
     text = element_text(size = 20),
@@ -139,15 +139,15 @@ p2 <- ggplot() +
 fit_trt_3 <- as.data.frame(partial_results_reduced[[3]])
 fit_trt_full_3 <- as.data.frame(partial_results_full[[3]])
 p3 <- ggplot() +
-  geom_point(data = df_trt1, aes(x = birth.o, y = iqsb.36), color = "blue", alpha = 0.3, size = 2) +
-  geom_point(data = df_trt0, aes(x = birth.o, y = iqsb.36), color = "red", alpha = 0.3, size = 2) +
+  geom_point(data = df_trt1, aes(x = birth.o, y = iqsb.36), color = "blue", alpha = 0.2, size = 2) +
+  geom_point(data = df_trt0, aes(x = birth.o, y = iqsb.36), color = "red", alpha = 0.2, size = 2) +
   geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,2]), color = "Treatment 1", linetype = "Unrestricted"),  size = 1) +
   geom_line(data = fit_trt_3, aes(x = as.numeric(fit_trt_3[,3]), y = as.numeric(fit_trt_3[,1]), color = "Treatment 0", linetype = "Unrestricted"), size = 1) +
   geom_line(data = fit_trt_full_3, aes(x = as.numeric(fit_trt_full_3[,3]), y = as.numeric(fit_trt_full_3[,2]), color = "Treatment 1", linetype = "Restricted"),  size = 1) +
   geom_line(data = fit_trt_full_3, aes(x = as.numeric(fit_trt_full_3[,3]), y = as.numeric(fit_trt_full_3[,1]), color = "Treatment 0", linetype = "Restricted"),  size = 1) +
   labs(x = "Birth order", y = "Predicted IQ at 36 months", color = "Treatment", linetype = "Method") +
   scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
-  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  scale_linetype_manual(values = c("Restricted" = "dotdash", "Unrestricted" = "solid")) +
   theme_minimal()+
   theme(
     text = element_text(size = 20),
@@ -164,15 +164,15 @@ p3 <- ggplot() +
 fit_trt_4 <- as.data.frame(partial_results_reduced[[4]])
 fit_trt_full_4 <- as.data.frame(partial_results_full[[4]])
 p4 <- ggplot() +
-  geom_point(data = df_trt1, aes(x = parity, y = iqsb.36), color = "blue", alpha = 0.3, size = 2) +
-  geom_point(data = df_trt0, aes(x = parity, y = iqsb.36), color = "red", alpha = 0.3, size = 2) +
+  geom_point(data = df_trt1, aes(x = parity, y = iqsb.36), color = "blue", alpha = 0.2, size = 2) +
+  geom_point(data = df_trt0, aes(x = parity, y = iqsb.36), color = "red", alpha = 0.2, size = 2) +
   geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,2]), color = "Treatment 1", linetype = "Unrestricted"),  size = 1) +
   geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,1]), color = "Treatment 0", linetype = "Unrestricted"),  size = 1) +
   geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,2]), color = "Treatment 1", linetype = "Restricted"),  size = 1) +
   geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,1]), color = "Treatment 0", linetype = "Restricted"), size = 1) +
   labs(x = "Number of childeren", y = "", color = "Treatment", linetype = "Method") +
   scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
-  scale_linetype_manual(values = c("Restricted" = "dotted", "Unrestricted" = "solid")) +
+  scale_linetype_manual(values = c("Restricted" = "dotdash", "Unrestricted" = "solid")) +
   theme_minimal()+
   theme(
     text = element_text(size = 22),
