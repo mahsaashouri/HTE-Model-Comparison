@@ -66,8 +66,8 @@ for(i in 1:nrow(GridEnd)){
     full_glmboost_1 <- full_glmboost[DAT_tmp$treat == 1]
     
     reduced_glmboost <- as.numeric(predict(fit_func[[2]], newdata=DAT_reduced_tmp)) + fit_func[[3]]*DAT_reduced_tmp$treat
-    reduced_glmboost_0 <- reduced_glmboost[Xmat_full[,1] == 0]
-    reduced_glmboost_1 <- reduced_glmboost[Xmat_full[,1] == 1]
+    reduced_glmboost_0 <- reduced_glmboost[DAT_reduced_tmp$treat == 0]
+    reduced_glmboost_1 <- reduced_glmboost[DAT_reduced_tmp$treat == 1]
     
     ff_full[k,1] <- mean(full_glmboost_0)
     ff_full[k,2] <- mean(full_glmboost_1)
@@ -211,8 +211,10 @@ combined_plot <- (p1 + p2) / (p3 + p4) +
   theme(
     legend.position = 'bottom',
     legend.title = element_text(size = 26),
-    legend.text = element_text(size = 22)
-  )
+    legend.text = element_text(size = 22),
+    legend.key.width = unit(4, "lines")
+  ) 
+
 
 # Print the combined plot with the legend
 print(combined_plot)
