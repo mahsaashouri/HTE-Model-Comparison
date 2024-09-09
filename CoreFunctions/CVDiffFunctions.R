@@ -1,6 +1,94 @@
+ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
+                    trans = list(identity)) {
+  n <- length(Y)
+  fold_id <- sample(1:n_folds, size=n, replace=TRUE)
+  
+  ehat <- rep(NA, n_folds)
+  errors <- c()
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k],
+                        Trt[fold_id != k], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k, ], X0[fold_id==k,], Trt[fold_id==k])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k])
+    ehat[k] <- mean(error_k)
+    errors <- c(errors, error_k)
+  }
+  err_hat <- mean(ehat)
+  se_naive <- sd(errors)/sqrt(n)
+    
+  split_id <- sample(0:1, size=n, replace=TRUE)
+  ehat0 <- ehat1 <- rep(NA, n_folds)
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k & split_id==0, ]), as.matrix(X0[fold_id !=k & split_id==0, ]), 
+                        Y[fold_id != k & split_id==0], Trt[fold_id != k & split_id==0], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k & split_id==0, ], X0[fold_id==k & split_id==0,], Trt[fold_id==k & split_id==0])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k & split_id==0])
+    ehat0[k] <- mean(error_k)
+  }
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k & split_id==1, ]), as.matrix(X0[fold_id !=k & split_id==1, ]), 
+                        Y[fold_id != k & split_id==1], Trt[fold_id != k & split_id==1], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k & split_id==1, ], X0[fold_id==k & split_id==1,], Trt[fold_id==k & split_id==1])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k & split_id==1])
+    ehat1[k] <- mean(error_k)
+  }
+  err_hat <- mean(ehat)
+  se_nb <- sqrt(0.5*((mean(ehat0) - mean(ehat1))^2))
+  
+  print(c(se_nb, se_naive))
+  std_err <- max(c(se_naive, se_nb))
+  return(list("err_hat" = err_hat,
+              "std_err" = std_err,
+              "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
+}
 
 
-naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
+
+data_splitting <- function(X, X0, Y, Trt, tau.range, funcs, train_prob, alpha = 0.05,
+                           trans = list(identity)) {
+  min_gp_errors <- NULL
+  n <- length(Y)
+  train_ind <- sample(0:1, size=n, replace=TRUE, prob=c(train_prob, 1 - train_prob))
+  
+  
+  fit <- funcs$fitter(as.matrix(X[train_ind ==1, ]), as.matrix(X0[train_ind ==1, ]), Y[train_ind == 1],
+                      Trt[train_ind == 1], tau.range)
+  preds <- funcs$predictor(fit, X[train_ind == 0, ], X0[train_ind==0,], Trt[train_ind==0])
+  
+  errors <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_ind==0])
+  
+  #ehat <- rep(NA, 5)
+  #for(k in 1:5) {
+  #   train_indk <- sample(0:1, size=n, replace=TRUE, prob=c(train_prob, 1 - train_prob))
+  #  
+  #  
+  #   fitk <- funcs$fitter(as.matrix(X[train_indk ==1, ]), as.matrix(X0[train_indk ==1, ]), Y[train_indk == 1],
+  #                      Trt[train_indk == 1], tau.range)
+  #   predsk <- funcs$predictor(fit, X[train_indk == 0, ], X0[train_indk==0,], Trt[train_indk==0])
+  #  
+  #   errorsk <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_indk==0])
+  #   ehat[k] <- mean(errors) - mean(errorsk)
+  #}
+ # bb <- mean(ehat)
+  
+  err_hat <- mean(errors)
+  std_err <- sd(errors)/sqrt(sum(train_ind==0))
+  
+  return(list("err_hat" = err_hat,
+              "std_err" = std_err,
+              "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
+}
+
+
+naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
                      trans = list(identity), fold_id = NULL) {
   min_gp_errors <- NULL
   if(is.null(fold_id)) {
@@ -17,7 +105,10 @@ naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = c(0.01, 0
     fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k],
                         Trt[fold_id != k], tau.range)
     preds <- funcs$predictor(fit, X[fold_id == k, ], X0[fold_id==k,], Trt[fold_id==k])
+   
     error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k])
+    #A <- cbind(preds$pred_full, preds$pred_reduced, Y[fold_id==k], error_k)
+    
     errors <- c(errors, error_k)
     temp_vec <- c()
     for(tran in trans) {
@@ -76,8 +167,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c
   }
   if(bias_reps == 0) {
     bias_est <- 0
-  }
-  else {
+  } else {
     for(i in 1:bias_reps) {
       temp <- naive_cv(X, X0, Y, Trt, tau.range, funcs, n_folds)
       cv_means <- c(cv_means, temp$err_hat)
@@ -93,6 +183,7 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c
   results[["ci_lo"]] <- pred_est - std.err*qnorm(1 - 0.05/2)
   results[["ci_hi"]] <- pred_est + std.err*qnorm(1 - 0.05/2)
   results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std.err)
+  results[["hvalue1sided"]] <- pnorm(pred_est/std.err, lower.tail=FALSE)
   results[["sd_infl"]] <- ugp_infl
   results[["err_hat"]] <- pred_est
   results[["raw_mean"]] <- mean(ho_errs)
