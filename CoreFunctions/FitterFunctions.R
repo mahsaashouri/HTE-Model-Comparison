@@ -1,164 +1,249 @@
-squared_loss <- function(fhat_full, fhat_reduced, y) {
-  ## y1 - full model
-  ## y2 - reduced model
-  ## y3 - outcome
-  (fhat_reduced - y)^2 - (fhat_full - y)^2
+ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
+                   trans = list(identity)) {
+  n <- length(Y)
+  fold_id <- sample(1:n_folds, size=n, replace=TRUE)
+  
+  ehat <- rep(NA, n_folds)
+  errors <- c()
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k],
+                        Trt[fold_id != k], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k, ], X0[fold_id==k,], Trt[fold_id==k])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k])
+    ehat[k] <- mean(error_k)
+    errors <- c(errors, error_k)
+  }
+  err_hat <- mean(ehat)
+  se_naive <- sd(errors)/sqrt(n)
+  
+  split_id <- sample(0:1, size=n, replace=TRUE)
+  ehat0 <- ehat1 <- rep(NA, n_folds)
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k & split_id==0, ]), as.matrix(X0[fold_id !=k & split_id==0, ]), 
+                        Y[fold_id != k & split_id==0], Trt[fold_id != k & split_id==0], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k & split_id==0, ], X0[fold_id==k & split_id==0,], Trt[fold_id==k & split_id==0])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k & split_id==0])
+    ehat0[k] <- mean(error_k)
+  }
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k & split_id==1, ]), as.matrix(X0[fold_id !=k & split_id==1, ]), 
+                        Y[fold_id != k & split_id==1], Trt[fold_id != k & split_id==1], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k & split_id==1, ], X0[fold_id==k & split_id==1,], Trt[fold_id==k & split_id==1])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k & split_id==1])
+    ehat1[k] <- mean(error_k)
+  }
+  err_hat <- mean(ehat)
+  se_nb <- sqrt(0.5*((mean(ehat0) - mean(ehat1))^2))
+  
+  print(c(se_nb, se_naive))
+  std_err <- max(c(se_naive, se_nb))
+  return(list("err_hat" = err_hat,
+              "std_err" = std_err,
+              "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
 }
 
-mse <- function(y1, y2, y3, Trt, tau) {
-  ## y1 - full model
-  ## y2 - reduced model
-  ## y3 - outcome
-  mse_full <- mean((y1 - y3)^2)
-  mse_reduced <- mean((y2 - (y3 - tau*Trt))^2)
-  return(list(full = mse_full, reduced = mse_reduced))
-}
-
-### Fitting Functions
-
-fitter_lm <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  ## X0 does not have treatment column
-  if(sum(is.na(idx)) > 0) {
-    idx <- 1:nrow(X)
-  }
-  data.all <- cbind.data.frame(X[idx, ], Y = Y[idx])
-  fit <- lm(Y ~., data = data.all)
-  
-  f0fn <- function(tau) {
-    data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau*Trt[idx])
-    fit_reduced <- lm(Y ~., data = data.reduced)
-    mse_local <- mean((data.reduced$Y - fit_reduced$fitted.values )^2)
-    return(mse_local)
-  }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau.star*Trt[idx])
-  fit_reduced <- lm(Y ~., data = data.reduced)
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
-}
 
 
-fitter_glmnet <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  ## X0 does not have treatment column
-  if(sum(is.na(idx)) > 0) {
-    idx <- 1:nrow(X)
-  }
-  Xmat <- as.matrix(X[idx,])
-  X0mat <- as.matrix(X0[idx,])
-  fit <- cv.glmnet(Xmat, Y[idx], family = "gaussian", nfolds = 5)
-  
-  f0fn <- function(tau) {
-    Wtau <- Y[idx] - tau*Trt[idx]
-    fit_reduced <- cv.glmnet(X0mat, Wtau, family = "gaussian", nfolds = 5)
-    mse_local <- mean((Wtau - predict(fit_reduced, newx=X0mat))^2)
-    return(mse_local)
-  }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  
-  Wtau.star <- Y[idx] - tau.star*Trt[idx]
-  fit_reduced <- cv.glmnet(X0mat, Wtau.star, family = "gaussian", nfolds = 5)
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
-}
-
-fitter_glmboost <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  ## X0 does not have treatment column
-  if(sum(is.na(idx)) > 0) {
-    idx <- 1:nrow(X)
-  }
-  Xmat <- as.matrix(X[idx,])
-  X0mat <- as.matrix(X0[idx,])
-  fit <- glmboost(x=Xmat, y=Y[idx], family = Gaussian())
-  
-  f0fn <- function(tau) {
-    Wtau <- Y[idx] - tau*Trt[idx]
-    fit_reduced <- glmboost(x=X0mat, y=Wtau,family = Gaussian())
-    mse_local <- mean((Wtau - predict(fit_reduced, newdata=X0mat))^2)
-    return(mse_local)
-  }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  Wtau.star <- Y[idx] - tau.star*Trt[idx]
-  fit_reduced <- glmboost(x=X0mat, y=Wtau.star,family = Gaussian())
-  
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
-}
-
-fitter_bart <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  ## X0 does not have treatment column
-  if(sum(is.na(idx)) > 0) {
-    idx <- 1:nrow(X)
-  }
-  Xmat <- as.matrix(X[idx,])
-  X0mat <- as.matrix(X0[idx,])
-  fit <- bart(x.train=Xmat, y.train=Y[idx],
-              ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
-  
-  f0fn <- function(tau) {
-    Wtau <- Y[idx] - tau*Trt[idx]
-    fit_reduced <- bart(x.train=X0mat, y.train=Wtau,
-                        ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
-    pp <- fit_reduced$yhat.train.mean
-    mse_local <- mean((Wtau - pp)^2)
-    return(mse_local)
-  }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  Wtau.star <- Y[idx] - tau.star*Trt[idx]
-  fit_reduced <- bart(x.train=X0mat, y.train=Wtau.star,
-                      ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, printevery=1000, verbose=FALSE)
-  
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
-}
-
-fitter_rf <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  if(sum(is.na(idx)) > 0) {
-    idx <- 1:nrow(X)
-  }
-  data.all <- cbind.data.frame(X[idx, ], Y = Y[idx])
-  fit <- randomForest(Y ~., data = data.all, maxnodes=16, ntree=100)
+data_splitting <- function(X, X0, Y, Trt, tau.range, funcs, train_prob, alpha = 0.05,
+                           trans = list(identity)) {
+  min_gp_errors <- NULL
+  n <- length(Y)
+  train_ind <- sample(0:1, size=n, replace=TRUE, prob=c(train_prob, 1 - train_prob))
   
   
-  data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx])
-  f0fn <- function(tau) {
-    data.reduced$Y <- Y[idx] - tau*Trt[idx]
-    #data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau*Trt[idx])
-    fit_reduced <- randomForest(Y ~., data = data.reduced, maxnodes=16, ntree=100)
-    mse_local <- mean((data.reduced$Y - fit_reduced$predicted)^2)
-    return(mse_local)
+  fit <- funcs$fitter(as.matrix(X[train_ind ==1, ]), as.matrix(X0[train_ind ==1, ]), Y[train_ind == 1],
+                      Trt[train_ind == 1], tau.range)
+  preds <- funcs$predictor(fit, X[train_ind == 0, ], X0[train_ind==0,], Trt[train_ind==0])
+  
+  errors <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_ind==0])
+  
+  #ehat <- rep(NA, 5)
+  #for(k in 1:5) {
+  #   train_indk <- sample(0:1, size=n, replace=TRUE, prob=c(train_prob, 1 - train_prob))
+  #  
+  #  
+  #   fitk <- funcs$fitter(as.matrix(X[train_indk ==1, ]), as.matrix(X0[train_indk ==1, ]), Y[train_indk == 1],
+  #                      Trt[train_indk == 1], tau.range)
+  #   predsk <- funcs$predictor(fit, X[train_indk == 0, ], X0[train_indk==0,], Trt[train_indk==0])
+  #  
+  #   errorsk <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_indk==0])
+  #   ehat[k] <- mean(errors) - mean(errorsk)
+  #}
+  # bb <- mean(ehat)
+  
+  err_hat <- mean(errors)
+  std_err <- sd(errors)/sqrt(sum(train_ind==0))
+  
+  return(list("err_hat" = err_hat,
+              "std_err" = std_err,
+              "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
+}
+
+
+naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
+                     trans = list(identity), fold_id = NULL) {
+  min_gp_errors <- NULL
+  if(is.null(fold_id)) {
+    fold_id <- (1:nrow(X)) %% n_folds + 1
+    fold_id <- sample(fold_id)
   }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  data.reduced <- cbind.data.frame(X0[idx, ], Y= Y[idx] - tau.star*Trt[idx])
-  fit_reduced <- randomForest(Y ~., data = data.reduced, maxnodes=16, ntree=100)
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
+  
+  errors <- c()
+  mse_full <- c()
+  mse_reduced <- c()
+  gp_errors <- c()
+  for(k in 1:n_folds) {
+    
+    fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k],
+                        Trt[fold_id != k], tau.range)
+    preds <- funcs$predictor(fit, X[fold_id == k, ], X0[fold_id==k,], Trt[fold_id==k])
+    
+    error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k])
+    #A <- cbind(preds$pred_full, preds$pred_reduced, Y[fold_id==k], error_k)
+    
+    errors <- c(errors, error_k)
+    temp_vec <- c()
+    for(tran in trans) {
+      temp_vec <- c(temp_vec, tran(mean(error_k)))
+    }
+    gp_errors <- rbind(gp_errors, temp_vec)
+  }
+  
+  return(list("err_hat" = mean(errors),
+              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
+              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
+              "raw_mean" = mean(errors),
+              "sd" = sd(errors),
+              "group_err_hat" = apply(gp_errors, 2, mean),
+              "group_sd" = apply(gp_errors, 2, sd),
+              "raw_errors" = errors,
+              "fold_id" = fold_id))
+  
 }
 
 
-### Predictor Functions.
+# nested CV
 
-predictor_lm <- function(fit, X_new, X0_new, Trt_new) {
-  pfull <- predict(fit$full, newdata = X_new)
-  preduced <- predict(fit$reduced, newdata=X0_new) + fit$tau*Trt_new
-  return(list(pred_full=pfull, pred_reduced=preduced))
+nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
+                      bias_reps = NA, n_cores = 1) {
+  
+  #compute out-of-fold errors on SE scale
+  var_pivots <- c()
+  gp_errs <- c()
+  ho_errs <- c()
+  mse_full <- c()
+  mse_reduced <- c()
+  
+  #if(n_cores == 1){
+  raw <- lapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.range, funcs, n_folds)})
+  #}
+  for(i in 1:reps) {
+    temp <- raw[[i]]
+    var_pivots <- rbind(var_pivots, temp$pivots)
+    ho_errs <- c(ho_errs, temp$errs)
+  }
+  n_sub <- floor(length(Y) * (n_folds - 1) / n_folds)
+  # look at the estimate of inflation after each repetition
+  ugp_infl <- sqrt(max(0, mean(var_pivots[, 1]^2 - var_pivots[, 2]))) / (sd(ho_errs) / sqrt(n_sub))
+  ugp_infl <- max(1, min(ugp_infl, sqrt(n_folds)))
+  
+  #estimate of inflation at each time step
+  infl_est2 <- sqrt(pmax(0, sapply(1:reps, function(i){mean(var_pivots[1:(i*n_folds), 1]^2 - var_pivots[1:(i*n_folds), 2])}))) /
+    (sd(ho_errs) / sqrt(n_sub))
+  
+  #bias correction
+  cv_means <- c() #estimated pred error from normal CV
+  bias_est <- 0
+  if(is.na(bias_reps)) {
+    bias_reps <- ceiling(reps / 5) #fewer reps for bias estimation
+  }
+  if(bias_reps == 0) {
+    bias_est <- 0
+  } else {
+    for(i in 1:bias_reps) {
+      temp <- naive_cv(X, X0, Y, Trt, tau.range, funcs, n_folds)
+      cv_means <- c(cv_means, temp$err_hat)
+    }
+    
+    bias_est <- (mean(ho_errs) - mean(cv_means)) * (1 + ((n_folds - 2) / (n_folds ))^(1.5))
+  }
+  pred_est <- mean(ho_errs) - bias_est #debiased estimate
+  
+  results <- list()
+  zero_between_bounds <- rep(NA, length(alpha))
+  std.err <- sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+  results[["ci_lo"]] <- pred_est - std.err*qnorm(1 - 0.05/2)
+  results[["ci_hi"]] <- pred_est + std.err*qnorm(1 - 0.05/2)
+  results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std.err)
+  results[["hvalue1sided"]] <- pnorm(pred_est/std.err, lower.tail=FALSE)
+  results[["sd_infl"]] <- ugp_infl
+  results[["err_hat"]] <- pred_est
+  results[["raw_mean"]] <- mean(ho_errs)
+  results[["bias_est"]] <- bias_est
+  results[["sd"]] <- sd(ho_errs)
+  results[["running_sd_infl"]] <- infl_est2
+  #results[["prop_zero_CI"]] <- mean(zero_between_bounds)
+  #results[["mse_full"]] <- mse_full
+  # results[["mse_reduced"]] <- mse_reduced
+  
+  return(results)
 }
 
-predictor_glmnet <- function(fit, X_new, X0_new, Trt_new) {
-  pfull <- predict(fit$full, newx=as.matrix(X_new))
-  preduced <- predict(fit$reduced, newx=as.matrix(X0_new)) + fit$tau*Trt_new
-  return(list(pred_full=pfull, pred_reduced=preduced))
+nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, funcs_params = NULL) {
+  fold_id <- 1:nrow(X) %% n_folds + 1
+  fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
+  fold_id <- c(fold_id, rep(0, nrow(X) %% n_folds))
+  
+  #nested CV model fitting
+  ho_errors <- array(0, dim = c(n_folds, n_folds, nrow(X) %/% n_folds))
+  #^ entry i, j is error on fold i,
+  # when folds i & j are not used for model fitting.
+  for(f1 in 1:(n_folds - 1)) {
+    for(f2 in (f1+1):n_folds) {
+      test_idx <- c(which(fold_id == f1), which(fold_id == f2))
+      fit <- funcs$fitter(X[-test_idx, ], X0[-test_idx,], Y[-test_idx], Trt[-test_idx],
+                          tau.range)
+      preds <- funcs$predictor(fit, X, X0, Trt)
+      ho_errors[f1, f2, ] <- funcs$loss(preds$pred_full[fold_id == f1], preds$pred_reduced[fold_id == f1], Y[fold_id == f1])
+      ho_errors[f2, f1, ] <- funcs$loss(preds$pred_full[fold_id == f2], preds$pred_reduced[fold_id == f2], Y[fold_id == f2])
+    }
+  }
+  
+  #e_bar - f_bar in the notation of the paper. n_folds x 1 matrix
+  out_mat <- matrix(0, n_folds, 2)
+  for(f1 in 1:(n_folds)) {
+    test_idx <- which(fold_id == f1)
+    fit <- funcs$fitter(X[-test_idx, ], X0[-test_idx,], Y[-test_idx], Trt[-test_idx],
+                        tau.range)
+    preds <- funcs$predictor(fit, X[test_idx, ], X0[test_idx, ], Trt[test_idx])
+    e_out <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[test_idx]) ## Change this
+    
+    #loop over other folds
+    e_bar_t <- c() # errors from internal CV
+    for(f2 in 1:n_folds) {
+      if(f2 == f1) {next}
+      e_bar_t <- c(e_bar_t, ho_errors[f2, f1, ])
+    }
+    out_mat[f1, 1] <- mean(e_bar_t) - mean(e_out) # (a) terms
+    out_mat[f1, 2] <- var(e_out) / length(test_idx) # (b) terms
+  }
+  
+  #errors on points not used for fitting, combined across all runs (used for point estimate)
+  all_ho_errs <- c()
+  for(f1 in 1:(n_folds - 1)) {
+    for(f2 in (f1+1):n_folds) {
+      all_ho_errs <- c(all_ho_errs, ho_errors[f1, f2, ], ho_errors[f2, f1, ])
+    }
+  }
+  
+  return(list("pivots" = out_mat,
+              "errs" = all_ho_errs))
 }
-
-predictor_glmboost <- function(fit, X_new, X0_new, Trt_new) {
-  pfull <- as.numeric(predict(fit$full, newdata = as.matrix(X_new)))
-  preduced <- as.numeric(predict(fit$reduced, newdata = as.matrix(X0_new))) + fit$tau*Trt_new
-  return(list(pred_full=pfull, pred_reduced=preduced))
-}
-
-predictor_bart <- function(fit, X_new, X0_new, Trt_new) {
-  pfull <- colMeans(predict(fit$full, newdata=as.matrix(X_new), ndpost=500L, printevery=1000, verbose=FALSE))
-  preduced <- colMeans(predict(fit$reduced, newdata = as.matrix(X0_new), ndpost=500L, printevery=1000, verbose=FALSE)) + fit$tau*Trt_new
-  return(list(pred_full=pfull, pred_reduced=preduced))
-}
-
-predictor_rf <- function(fit, X_new, X0_new, Trt_new) {
-  pfull <- predict(fit$full, newdata = X_new)
-  preduced <- predict(fit$reduced, newdata=X0_new) + fit$tau*Trt_new
-  return(list(pred_full=pfull, pred_reduced=preduced))
-}
-
