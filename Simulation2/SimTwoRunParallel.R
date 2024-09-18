@@ -69,7 +69,7 @@ for(j in 1:length(muvec)) {
     TrueThetas[k,] <- results[[k]]$true_thetas
   }
   ## Change file name here:
-  fname <- paste("/Users/ashourm/Projects/HTE-Model-Comparison", muvec[j],"Theta",thetavec[j],".RData", sep="")
+  fname <- paste("/Users/ashourm/Projects/HTE-Result", muvec[j],"Theta",thetavec[j],".RData", sep="")
   save(cover_lm, cover_glmnet, cover_glmboost, cover_rf, CI_lm, CI_glmnet,
        CI_glmboost, CI_rf, hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf,
        hvalue1_lm, hvalue1_glmnet, hvalue1_glmboost, hvalue1_rf, TrueThetas,
