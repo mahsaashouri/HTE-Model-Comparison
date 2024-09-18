@@ -21,8 +21,8 @@ num_cores <- detectCores() - 1  # Use all cores except one
 
 ## change muvec and thetavec if you don't want to 
 ## run as many simulation settings
-muvec <- rep(1:3, each=4)
-thetavec <- rep(1:4, 3)
+muvec <- rep(1, 4)
+thetavec <- rep(1:4)
 
 # Set up the cluster
 for(j in 1:length(muvec)) {
@@ -69,7 +69,7 @@ for(j in 1:length(muvec)) {
     TrueThetas[k,] <- results[[k]]$true_thetas
   }
   ## Change file name here:
-  fname <- paste("~/Documents/HTEevaluation/HTE-Model-Comparison/SimulationResults", muvec[j],"Theta",thetavec[j],".RData", sep="")
+  fname <- paste("/Users/ashourm/Projects/HTE-Model-Comparison", muvec[j],"Theta",thetavec[j],".RData", sep="")
   save(cover_lm, cover_glmnet, cover_glmboost, cover_rf, CI_lm, CI_glmnet,
        CI_glmboost, CI_rf, hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf,
        hvalue1_lm, hvalue1_glmnet, hvalue1_glmboost, hvalue1_rf, TrueThetas,
