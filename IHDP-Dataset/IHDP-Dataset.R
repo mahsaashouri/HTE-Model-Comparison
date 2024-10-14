@@ -31,7 +31,7 @@ drop_cols <- c(which(colnames(DAT_reduced)=="iqsb.36"), which(colnames(DAT_reduc
 DAT_red <- data.frame(Wtau=DAT_reduced$iqsb.36, selected_data)
 
 ## Source fitting and nested cv functions
-setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
+setwd("/Users/ashourm/Projects/HTE-Model-Comparison")  ## Change for your computer
 source("CoreFunctions/CVDiffFunctions.R")
 source("CoreFunctions/FitterFunctions.R")
 
@@ -165,16 +165,22 @@ for(h in 1:nreps) {
 
 
 # histogram - h-values
+#data_hvalues <- data.frame(
+#  value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf),
+#  group = factor(rep(c("linear", "glmnet", "glmboost", "random forest"), each = 50), levels = c("linear", "glmnet", "glmboost", "random forest"))
+#)
+
 data_hvalues <- data.frame(
-  value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf),
-  group = factor(rep(c("linear", "glmnet", "glmboost", "random forest"), each = 50), levels = c("linear", "glmnet", "glmboost", "random forest"))
+  value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost),
+  group = factor(rep(c("linear", "glmnet", "glmboost"), each = 50), levels = c("linear", "glmnet", "glmboost"))
 )
 
 # Plot the overlapping histograms
 ggplot(data_hvalues, aes(x = value, fill = group)) +
-  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray') +
+  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray', binwidth = 0.03) +
   labs(x = "h-value", y = "Frequency") +
-  scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4", "darkgoldenrod"), name = "Methods") +
+  #scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4", "darkgoldenrod"), name = "Methods") +
+  scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4"), name = "Methods") +
   theme_minimal()+
   theme(
     text = element_text(size = 20),  
