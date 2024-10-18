@@ -181,6 +181,7 @@ ggplot(data_hvalues, aes(x = value, fill = group)) +
   labs(x = "h-value", y = "Frequency") +
   #scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4", "darkgoldenrod"), name = "Methods") +
   scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4"), name = "Methods") +
+  coord_cartesian(xlim = c(0,1)) +
   theme_minimal()+
   theme(
     text = element_text(size = 20),  
