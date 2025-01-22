@@ -170,7 +170,7 @@ p4 <- ggplot() +
   geom_line(data = fit_trt_4, aes(x = as.numeric(fit_trt_4[,3]), y = as.numeric(fit_trt_4[,1]), color = "Treatment 0", linetype = "Unrestricted"),  size = 1) +
   geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,2]), color = "Treatment 1", linetype = "Restricted"),  size = 1) +
   geom_line(data = fit_trt_full_4, aes(x = as.numeric(fit_trt_full_4[,3]), y = as.numeric(fit_trt_full_4[,1]), color = "Treatment 0", linetype = "Restricted"), size = 1) +
-  labs(x = "Number of childeren", y = "", color = "Treatment", linetype = "Method") +
+  labs(x = "Number of children", y = "", color = "Treatment", linetype = "Method") +
   scale_color_manual(values = c("Treatment 1" = "blue", "Treatment 0" = "red")) +
   scale_linetype_manual(values = c("Restricted" = "dotdash", "Unrestricted" = "solid")) +
   theme_minimal()+
