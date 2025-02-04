@@ -167,12 +167,12 @@ for(h in 1:nreps) {
 # histogram - h-values
 #data_hvalues <- data.frame(
 #  value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf),
-#  group = factor(rep(c("linear", "glmnet", "glmboost", "random forest"), each = 50), levels = c("linear", "glmnet", "glmboost", "random forest"))
+#  group = factor(rep(c("linear", "Lasso", "boosting", "random forest"), each = 50), levels = c("linear", "Lasso", "boosting", "random forest"))
 #)
 
 data_hvalues <- data.frame(
   value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost),
-  group = factor(rep(c("linear", "glmnet", "glmboost"), each = 50), levels = c("linear", "glmnet", "glmboost"))
+  group = factor(rep(c("linear", "Lasso", "boosting"), each = 50), levels = c("linear", "Lasso", "boosting"))
 )
 
 # Plot the overlapping histograms
