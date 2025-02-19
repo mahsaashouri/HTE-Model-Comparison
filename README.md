@@ -7,9 +7,9 @@ The raw dataset can be downloaded from [here](http://www.icpsr.umich.edu/icpsrwe
 Library Containing the 59 Evaluation'.The cleaned dataset containing the variables used in this study is available at [here](https://github.com/mahsaashouri/HTE-Model-Comparison).
 
 # Reproducing results
-* `Sim1Run.R`: results for linear conditional mean function simulation study (*Tables 2*, and *B1*)
-* `SimTwoRunParallel.R`: results for non-linear conditional mean functions simulation study (*Tables 3*, *4*, and *B2*)
-* `plot_example_compare.R`: simulated data illustration (*Figure B1*)
-* `IHDP-Dataset.R`: histogram of h-values for IHDP dataset (*Figures B2*, and *B4*)
-* `Par_Dep_Plot.R`: partial dependence plots using glmboost (*Figure B3*)
+* `Sim1Run.R`: results for linear conditional mean function simulation study (*Tables 2*)
+* `SimTwoRunParallel.R`: results for non-linear conditional mean functions simulation study (*Tables 3*, and *4*)
+* `plot_example_compare.R`: simulated data illustration (*Figure 1*)
+* `IHDP-Dataset.R`: histogram of h-values for IHDP dataset (*Figures 2*)
+* `Par_Dep_Plot.R`: partial dependence plots using glmboost (*Figure 3*)
   
