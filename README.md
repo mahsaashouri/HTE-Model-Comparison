@@ -8,8 +8,8 @@ Library Containing the 59 Evaluation'.The cleaned dataset containing the variabl
 
 # Reproducing results
 * `Sim1Run.R`: results for linear conditional mean function simulation study (*Tables 2*)
-* `SimTwoRunParallel.R`: results for non-linear conditional mean functions simulation study (*Tables 3*, and *4*)
+* `SimTwoRunParallel.R`: results for non-linear conditional mean functions simulation study (*Tables 3*, *4*, and S1)
 * `plot_example_compare.R`: simulated data illustration (*Figure 1*)
-* `IHDP-Dataset.R`: histogram of h-values for IHDP dataset (*Figures 2*)
+* `IHDP-Dataset.R`: histogram of h-values for IHDP dataset (*Figures 2*, and S1)
 * `Par_Dep_Plot.R`: partial dependence plots using glmboost (*Figure 3*)
   
