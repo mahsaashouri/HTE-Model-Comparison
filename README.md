@@ -4,7 +4,7 @@ Developing tools for estimating heterogeneous treatment effects and individualiz
 
 # Dataste
 The raw dataset can be downloaded from [here](http://www.icpsr.umich.edu/icpsrweb/HMCA/studies/9795?paging.startRow=51). The dataset is titled: 'DS141: Transport Format SAS
-Library Containing the 59 Evaluation'.The cleaned dataset containing the variables used in this study is available at [here](https://github.com/mahsaashouri/HTE-Model-Comparison).
+Library Containing the 59 Evaluation'.The cleaned dataset containing the variables used in this study is available at [here](https://github.com/mahsaashouri/HTE-Model-Comparison/tree/main/IHDP-Dataset).
 
 # Reproducing results
 * `Sim1Run.R`: results for linear conditional mean function simulation study (*Tables 2*)
