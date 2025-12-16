@@ -21,7 +21,7 @@ beta4 <- 0
 beta5 <- 0
 
 ## Source fitting and nested cv functions
-setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
+setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
 source("CoreFunctions/CVDiffFunctions.R")
 source("CoreFunctions/FitterFunctions.R")
 
@@ -58,7 +58,7 @@ rf_funs <- list(fitter = fitter_rf,
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:
-n <- 500
+n <- 1000
 n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
@@ -89,7 +89,7 @@ for(h in 1:nreps) {
   DAT <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A, 'x1.t' = A*x1, 'x2.t' = A*x2)
   DAT_reduced <- data.frame('Y' = Y, 'x1' = x1, 'x2' = x2, 'A' = A)
   drop_cols <- c(which(colnames(DAT_reduced)=="Y"), which(colnames(DAT_reduced)=="A"))
-  DAT_red <- data.frame(Wtau=DAT_reduced$Y, x)
+  DAT_red <- data.frame(Wtau = DAT_reduced$Y, x1 = x1, x2 = x2)
 
   Xmat_tmp <- model.matrix(Y ~ x1 + x2 + A + A:x1 + A:x2 - 1, data=DAT)
   X0mat_tmp <- model.matrix(Y ~ x1 + x2 + A - 1, data=DAT_reduced)
