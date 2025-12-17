@@ -31,7 +31,7 @@ drop_cols <- c(which(colnames(DAT_reduced)=="iqsb.36"), which(colnames(DAT_reduc
 DAT_red <- data.frame(Wtau=DAT_reduced$iqsb.36, selected_data)
 
 ## Source fitting and nested cv functions
-setwd("/Users/ashourm/Projects/HTE-Model-Comparison")  ## Change for your computer
+setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
 source("CoreFunctions/CVDiffFunctions.R")
 source("CoreFunctions/FitterFunctions.R")
 
