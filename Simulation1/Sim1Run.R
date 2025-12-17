@@ -15,10 +15,10 @@ beta0 <- 2
 beta1 <- 3
 beta2 <- -1
 beta3 <- 1.5
-#beta4 <- 0.5
-#beta5 <- -2
-beta4 <- 0
-beta5 <- 0
+beta4 <- 0.5
+beta5 <- -2
+#beta4 <- 0
+#beta5 <- 0
 
 ## Source fitting and nested cv functions
 setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
@@ -241,3 +241,10 @@ for(h in 1:nreps) {
 ##       CI_lm, CI_glmnet, CI_glmboost, CI_bart
 ##      hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_bart
 
+save(
+  cover_lm, cover_glmnet, cover_glmboost, cover_rf,
+  CI_lm, CI_glmnet, CI_glmboost, 
+  hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf,
+  true_thetas,
+  file = "Sim1A_1000.RData"
+)
