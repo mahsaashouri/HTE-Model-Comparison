@@ -28,23 +28,6 @@ DATA <- DATA %>%
   select(-smoke)  # Remove original smoke variable
 
 ##################################
-# Calculate correlations with the outcome (pseudosurvival) - if needed
-# First, create a dataset with only numeric variables for correlation
-#numeric_data <- DATA %>% select_if(is.numeric)
-#cor_matrix <- cor(numeric_data, use = "complete.obs")
-
-# Get correlation with pseudosurvival
-#pseudosurvival_col <- which(colnames(numeric_data) == "pseudosurvival")
-#cor_with_output <- cor_matrix[, pseudosurvival_col]
-#cor_with_output[pseudosurvival_col] <- 0  # Set the correlation with output to 0
-
-# Get top 10 predictors based on correlation
-#sorted_correlations <- sort(abs(cor_with_output), decreasing = TRUE)
-#top_10_correlations <- sorted_correlations[1:10]
-#top_10_predictors <- names(top_10_correlations)
-
-# Subset your data to keep only the top 10 predictor columns
-# selected_data <- DATA[, top_10_predictors]
 
 ## reduced model
 Cov_DAT <- DATA %>% select(-pseudosurvival, -treat)
@@ -53,12 +36,6 @@ DAT_reduced <- bind_cols(output, Cov_DAT)
 #DAT_reduced <- bind_cols(output, selected_data)
 
 ## full model - create interaction terms
-#selected_data.T <- matrix(NA, nrow = nrow(selected_data), ncol = ncol(selected_data))
-#for(k in 1:ncol(selected_data)){
-#  selected_data.T[,k] <- selected_data[,k] * output$treat
-#}
-#colnames(selected_data.T) <- paste0(colnames(selected_data), ".t")
-#DAT <- bind_cols(output, selected_data, selected_data.T)
 
 Cov_DAT.T <- matrix(NA, nrow = nrow(Cov_DAT), ncol = ncol(Cov_DAT))
 for(k in 1:ncol(Cov_DAT)){
