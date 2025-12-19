@@ -246,5 +246,5 @@ save(
   CI_lm, CI_glmnet, CI_glmboost, 
   hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf,
   true_thetas,
-  file = "Sim1A_1000.RData"
+  file = "Sim1B_1000.RData"
 )
