@@ -2,8 +2,11 @@ library(glmnet)
 library(mboost)
 library(dbarts)
 library(randomForest)
+library(bcf)     # For Bayesian Causal Forest
+library(grf)     # For Causal Forest
+
 ##################################
-## Simulation Study 1B: High-Dimensional Setting (p=100)
+## Simulation Study 1B: High-Dimensional Setting (p=100) 
 ##################################
 # Set seed for reproducibility
 set.seed(12356)
@@ -18,9 +21,9 @@ beta_interaction <- c(0.5, -2, 0.7, 3, 0.9, rep(0, p - 5))  # Treatment interact
 ## Source fitting and nested cv functions
 setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
 source("CoreFunctions/CVDiffFunctions.R")
-source("CoreFunctions/FitterFunctions.R")
+source("CoreFunctions/NewFitterFunctions.R")
 
-## Define linear regression, glmnet, and boosting fitting and prediction functions. 
+## Define all method function lists
 linear_regression_funs <- list(fitter = fitter_lm,
                                predictor = predictor_lm,
                                mse = mse,
@@ -32,6 +35,12 @@ glmnet_funs <- list(fitter = fitter_glmnet,
                     mse = mse,
                     loss = squared_loss,
                     name = "glmnet")
+
+ridge_funs <- list(fitter = fitter_ridge,
+                   predictor = predictor_ridge,
+                   mse = mse,
+                   loss = squared_loss,
+                   name = "ridge")
 
 glmboost_funs <- list(fitter = fitter_glmboost,
                       predictor = predictor_glmboost,
@@ -45,18 +54,26 @@ rf_funs <- list(fitter = fitter_rf,
                 loss = squared_loss,
                 name = "rf")
 
+causal_forest_funs <- list(fitter = fitter_causal_forest,
+                           predictor = predictor_causal_forest,
+                           mse = mse,
+                           loss = squared_loss,
+                           name = "causal_forest")
+
 # Set the number of observations n, number of folds, and
-# number of nested cv replications: 
-n <- 1000
+# number of nested cv replications:  
+n <- 100
 n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
 nreps <- 500  ## Use nreps = 500 for paper
-cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
-hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
-CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)
-true_thetas <- matrix(NA, nreps, 4)
+
+# Initialize storage for all methods
+cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_bcf <- cover_causal_forest <- rep(NA, nreps)
+hvalue_lm <- hvalue_glmnet <- hvalue_ridge <- hvalue_glmboost <- hvalue_rf <- hvalue_bcf <- hvalue_causal_forest <- rep(NA, nreps)
+CI_lm <- CI_glmnet <- CI_ridge <- CI_glmboost <- CI_rf <- CI_bcf <- CI_causal_forest <- matrix(NA, nrow=nreps, ncol=2)
+true_thetas <- matrix(NA, nreps, 6)  
 
 for(h in 1:nreps) {
   # Generate random values for x1 to x100 from a normal distribution
@@ -97,7 +114,7 @@ for(h in 1:nreps) {
   
   # Create design matrices
   # Full model matrix (main effects + treatment + all interactions)
-  formula_full <- as.formula(paste("Y ~", paste(c(paste0("x", 1:p), "A", paste0("A:x", 1:p)), collapse = " + ")))
+  formula_full <- as.formula(paste("Y ~", paste(c(paste0("x", 1:p), "A", paste0("A: x", 1:p)), collapse = " + ")))
   Xmat_tmp <- model.matrix(formula_full, data = DAT)[, -1]  # Remove intercept
   
   # Reduced model matrix (main effects + treatment, no interactions)
@@ -108,11 +125,15 @@ for(h in 1:nreps) {
   formula_no_trt <- as.formula(paste("Y ~", paste(paste0("x", 1:p), collapse = " + ")))
   X0mat_notrt_tmp <- model.matrix(formula_no_trt, data = data.frame(X_matrix))[, -1]  # Remove intercept
   
-  ## Fit models
+  ## Fit models for theta computation
   tmp_lm <- lm(formula_full, data = DAT)
   tmp_reduced_lm <- lm(formula_reduced, data = DAT_reduced)
-  tmp_glmnet <- cv.glmnet(Xmat_tmp, DAT$Y, family = "gaussian", nfolds = 5)
-  tmp_reduced_glmnet <- cv.glmnet(X0mat_tmp, DAT$Y, family = "gaussian", nfolds = 5)
+  
+  tmp_glmnet <- cv.glmnet(Xmat_tmp, DAT$Y, family = "gaussian", nfolds = 5, alpha = 1)  # LASSO
+  tmp_reduced_glmnet <- cv.glmnet(X0mat_tmp, DAT$Y, family = "gaussian", nfolds = 5, alpha = 1)
+  
+  tmp_ridge <- cv.glmnet(Xmat_tmp, DAT$Y, family = "gaussian", nfolds = 5, alpha = 0)  # Ridge
+  tmp_reduced_ridge <- cv.glmnet(X0mat_tmp, DAT$Y, family = "gaussian", nfolds = 5, alpha = 0)
   
   tmp_glmboost <- glmboost(x=Xmat_tmp, y=DAT$Y, family = Gaussian())
   
@@ -126,9 +147,6 @@ for(h in 1:nreps) {
   Wtau.star <- DAT_reduced$Y - tau.star.gboost*DAT_reduced$A
   tmp_reduced_glmboost <- glmboost(x=X0mat_notrt_tmp, y = Wtau.star, family = Gaussian())
   
-  tmp_bart <- bart(x.train=Xmat_tmp, y.train=DAT$Y,
-                   ntree=50L, numcut=10L, nskip=100L, ndpost=500L, keeptrees=TRUE, verbose=FALSE)
-  
   f00fn <- function(tau) {
     DAT_red$Wtau <- DAT_reduced$Y - tau*DAT_reduced$A
     fit_reduced <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
@@ -138,11 +156,32 @@ for(h in 1:nreps) {
   tau.star.rf <- optimize(f00fn, interval=c(-5, 5))$minimum
   DAT_red$Wtau <- DAT_reduced$Y - tau.star.rf*DAT_reduced$A
   tmp_reduced_rf <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
+
+  # Fit Causal Forest model
+    tmp_cf <- causal_forest(X = X_matrix,
+                            Y = Y,
+                            W = A,
+                            num.trees = 1000,  # Reduced for simulation speed
+                            honesty = TRUE,
+                            honesty.fraction = 0.5,
+                            ci.group.size = 2)
+    
+    # Reduced model for Causal Forest
+    f_cf <- function(tau) {
+      Wtau <- Y - tau * A
+      fit_reduced <- regression_forest(X = X_matrix, Y = Wtau, num.trees = 1000)
+      pred_reduced <- predict(fit_reduced, X_matrix)$predictions
+      mse_local <- mean((Wtau - pred_reduced)^2)
+      return(mse_local)
+    }
+    tau.star.cf <- optimize(f_cf, interval=c(-5, 5))$minimum
+    Wtau.star.cf <- Y - tau.star.cf * A
+    tmp_reduced_cf <- regression_forest(X = X_matrix, Y = Wtau.star.cf, num.trees = 1000)
   
   ## Now, evaluate MSE difference on a much larger "future" dataset
   nr <- 100000
   
-  ## Generating future observations: 
+  ## Generating future observations:  
   epsilon_k <- rnorm(nr, mean = 0, sd = 1)
   X_matrix_k <- matrix(rnorm(nr * p, mean = 0, sd = 1), nrow = nr, ncol = p)
   colnames(X_matrix_k) <- paste0("x", 1:p)
@@ -164,31 +203,47 @@ for(h in 1:nreps) {
   DATk_reduced <- data.frame('Y' = Yk, X_matrix_k, 'A' = Ak)
   DATk_red <- data.frame('Y' = Yk, X_matrix_k)
   
-  # Future design matrices
+  # Future design matrices - ensure consistent column naming
   Xmat_tmpk <- model.matrix(formula_full, data = DATk)[, -1]
   X0mat_tmpk <- model.matrix(formula_reduced, data = DATk_reduced)[, -1]
-  X0mat_notrt_tmpk <- model.matrix(formula_no_trt, data = data.frame(X_matrix_k))[, -1]
+  X0mat_notrt_tmpk <- X_matrix_k  # Direct assignment - no model.matrix needed
   
   ## Getting predictions for these future observations
   pp_reduced_lm <- predict(tmp_reduced_lm, newdata=DATk_reduced)
   pp_full_lm <- predict(tmp_lm, newdata=DATk)
+  
   pp_reduced_glmnet <- as.numeric(predict(tmp_reduced_glmnet, newx=X0mat_tmpk))
   pp_full_glmnet <- as.numeric(predict(tmp_glmnet, newx=Xmat_tmpk))
+  
+  pp_reduced_ridge <- as.numeric(predict(tmp_reduced_ridge, newx=X0mat_tmpk))
+  pp_full_ridge <- as.numeric(predict(tmp_ridge, newx=Xmat_tmpk))
+  
   pp_reduced_glmboost <- as.numeric(predict(tmp_reduced_glmboost, newdata=X0mat_notrt_tmpk)) + tau.star.gboost*DATk_reduced$A
   pp_full_glmboost <- as.numeric(predict(tmp_glmboost, newdata = Xmat_tmpk))
   
-  new_rf <- fitter_rf(X0mat_tmp, X0mat_notrt_tmp, Y, A, tau.range=c(-5,5), idx = NA)
-  new_rf_pred <- predictor_rf(new_rf, X_new=DATk_reduced, X0_new=DATk_red, Trt_new=DATk_reduced$A)
-  
-  theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
+  # Use fitter functions for consistent theta computation
+  new_rf <- fitter_rf(data.frame(Xmat_tmp), data.frame(X0mat_notrt_tmp), Y, A, tau.range=c(-5,5), idx = NA)
+  new_rf_pred <- predictor_rf(new_rf, X_new=data.frame(Xmat_tmpk), X0_new=data.frame(X0mat_notrt_tmpk), Trt_new=DATk_reduced$A)
+
+  # Causal Forest predictions
+
+  # Get mu(x) from regression forest on original data
+   mu_forest <- regression_forest(X_matrix, Y)
+   mu_pred_k <- predict(mu_forest, X_matrix_k)$predictions
+   tau_pred_k <- predict(tmp_cf, X_matrix_k)$predictions
+   pp_full_cf <- mu_pred_k + tau_pred_k * Ak
+   pp_reduced_cf <- predict(tmp_reduced_cf, X_matrix_k)$predictions + tau.star.cf * Ak
   
   ## Compute \theta_{XY} by looking at differences in MSE
   theta_lm <- mean((Yk - pp_reduced_lm)^2) - mean((Yk - pp_full_lm)^2)
   theta_glmnet <- mean((Yk - pp_reduced_glmnet)^2) - mean((Yk - pp_full_glmnet)^2)
+  theta_ridge <- mean((Yk - pp_reduced_ridge)^2) - mean((Yk - pp_full_ridge)^2)
   theta_glmboost <- mean((Yk - pp_reduced_glmboost)^2) - mean((Yk - pp_full_glmboost)^2)
+  theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
+  theta_cf <- mean((Yk - pp_reduced_cf)^2) - mean((Yk - pp_full_cf)^2)
   
   #######################################################
-  ###.  Getting confidence intervals and h-values
+  ###.   Getting confidence intervals and h-values
   ######################################################
   naive.trt.effect <- mean(Y[A==1]) - mean(Y[A==0])
   tau.range <- sort(c(-5*naive.trt.effect, 5*naive.trt.effect))
@@ -197,31 +252,43 @@ for(h in 1:nreps) {
   XX <- data.frame(Xmat_tmp)
   XX0 <- data.frame(X0mat_notrt_tmp)
   
+  # Nested CV for all methods
   ncv_lm <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=linear_regression_funs,
                       n_folds = n_folds, reps = nested_cv_reps)
   
   ncv_net <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmnet_funs,
                        n_folds = n_folds, reps = nested_cv_reps)
   
+  ncv_ridge <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=ridge_funs,
+                         n_folds = n_folds, reps = nested_cv_reps)
+  
   ncv_boost <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=glmboost_funs,
                          n_folds = n_folds, reps = nested_cv_reps)
   
   ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
                       n_folds = n_folds, reps = 10, bias_reps = 0)
-  
+  XX_cf <- data.frame(X_matrix)  
+  XX0_cf <- data.frame(X_matrix) 
+  ncv_cf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=causal_forest_funs,
+                        n_folds = n_folds, reps = min(10, nested_cv_reps)) 
+
   ############################################
   ### Record Results
   ############################################
   cover_lm[h] <- theta_lm > ncv_lm$ci_lo & theta_lm < ncv_lm$ci_hi
   CI_lm[h,1] <- ncv_lm$ci_lo
   CI_lm[h,2] <- ncv_lm$ci_hi
-  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_glmboost, theta_rf)
   hvalue_lm[h] <- ncv_lm$hvalue
   
   cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
   CI_glmnet[h,1] <- ncv_net$ci_lo
   CI_glmnet[h,2] <- ncv_net$ci_hi
   hvalue_glmnet[h] <- ncv_net$hvalue
+  
+  cover_ridge[h] <- theta_ridge > ncv_ridge$ci_lo & theta_ridge < ncv_ridge$ci_hi
+  CI_ridge[h,1] <- ncv_ridge$ci_lo
+  CI_ridge[h,2] <- ncv_ridge$ci_hi
+  hvalue_ridge[h] <- ncv_ridge$hvalue
   
   cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
   CI_glmboost[h,1] <- ncv_boost$ci_lo
@@ -233,16 +300,24 @@ for(h in 1:nreps) {
   CI_rf[h,2] <- ncv_rf$ci_hi
   hvalue_rf[h] <- ncv_rf$hvalue
   
-  cat("Simulation Replication:  ", h, "\n")
+  cover_causal_forest[h] <- theta_cf > ncv_cf$ci_lo & theta_cf < ncv_cf$ci_hi
+  CI_causal_forest[h,1] <- ncv_cf$ci_lo
+  CI_causal_forest[h,2] <- ncv_cf$ci_hi
+  hvalue_causal_forest[h] <- ncv_cf$hvalue
+  
+  # Store true thetas for all methods
+  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_ridge, theta_glmboost, theta_rf, theta_cf)
+  
+  cat("Simulation Replication:   ", h, "\n")
 }
 
-## Save results
+
 save(
-  cover_lm, cover_glmnet, cover_glmboost, cover_rf,
-  CI_lm, CI_glmnet, CI_glmboost, CI_rf,
-  hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_rf,
+  cover_lm, cover_glmnet, cover_ridge, cover_glmboost, cover_rf, cover_causal_forest,
+  CI_lm, CI_glmnet, CI_ridge, CI_glmboost, CI_rf, CI_causal_forest,
+  hvalue_lm, hvalue_glmnet, hvalue_ridge, hvalue_glmboost, hvalue_rf, hvalue_causal_forest,
   true_thetas,
   beta_main, beta_interaction, beta_trt, beta0,
-  file = "Sim1B_HighDim_1000.RData"
+  file = "Sim1B_HighDim_Extended_1000.RData"
 )
 

@@ -141,59 +141,57 @@ fitter_ridge <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
-  Xmat <- as. matrix(X[idx,])
-  X0mat <- as. matrix(X0[idx,])
+  Xmat <- as.matrix(X[idx,])
+  X0mat <- as.matrix(X0[idx,])
   fit <- cv.glmnet(Xmat, Y[idx], family = "gaussian", nfolds = 5, alpha = 0)  # Ridge:  alpha = 0
   
   f0fn <- function(tau) {
     Wtau <- Y[idx] - tau*Trt[idx]
-    fit_reduced <- cv. glmnet(X0mat, Wtau, family = "gaussian", nfolds = 5, alpha = 0)
+    fit_reduced <- cv.glmnet(X0mat, Wtau, family = "gaussian", nfolds = 5, alpha = 0)
     mse_local <- mean((Wtau - predict(fit_reduced, newx=X0mat))^2)
     return(mse_local)
   }
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
   
   Wtau.star <- Y[idx] - tau.star*Trt[idx]
-  fit_reduced <- cv.glmnet(X0mat, Wtau. star, family = "gaussian", nfolds = 5, alpha = 0)
+  fit_reduced <- cv.glmnet(X0mat, Wtau.star, family = "gaussian", nfolds = 5, alpha = 0)
   return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
 # Bayesian Causal Forest
+# Simplified and more robust BCF fitting function
 fitter_bcf <- function(X, X0, Y, Trt, tau.range, idx = NA) {
-  if(sum(is. na(idx)) > 0) {
+  if(sum(is.na(idx)) > 0) {
     idx <- 1:nrow(X)
   }
   
-  # BCF requires specific setup
-  X_bcf <- as.matrix(X0[idx,])  # Covariates (without treatment interactions)
+  X_bcf <- as.matrix(X0[idx,])
   Y_bcf <- Y[idx]
   Trt_bcf <- Trt[idx]
-  
-  # Fit BCF model (full model with heterogeneous treatment effects)
-  fit <- bcf(y = Y_bcf, 
-             z = Trt_bcf, 
-             x_control = X_bcf, 
-             x_moderate = X_bcf,
-             pihat = rep(0.5, length(Y_bcf)),  # Propensity scores (assuming randomized)
-             nburn = 2000, 
-             nsim = 2000, 
-             nthin = 1,
-             update_interval = 1000)
-  
-  # For reduced model, fit without treatment effect heterogeneity
+    fit <- bcf(y = Y_bcf, 
+               z = Trt_bcf, 
+               x_control = X_bcf, 
+               x_moderate = X_bcf,
+               pihat = rep(0.5, length(Y_bcf)),
+               nburn = 100,
+               nsim = 100,
+               ntree_control = 10,
+               ntree_moderate = 5,
+               save_tree_directory = tempdir(), 
+               verbose = FALSE)
+  # Fit reduced model (always use linear model for consistency)
   f0fn <- function(tau) {
     Wtau <- Y_bcf - tau * Trt_bcf
-    # Simple regression for reduced model
     fit_reduced <- lm(Wtau ~ X_bcf)
     mse_local <- mean((Wtau - fitted(fit_reduced))^2)
     return(mse_local)
   }
-  tau.star <- optimize(f0fn, interval=tau.range)$minimum
-  
+  tau.star <- optimize(f0fn, interval = tau.range)$minimum
   Wtau.star <- Y_bcf - tau.star * Trt_bcf
-  fit_reduced <- lm(Wtau. star ~ X_bcf)
+  fit_reduced <- lm(Wtau.star ~ X_bcf)
   
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star, X_bcf = X_bcf))
+  return(list(full = fit, reduced = fit_reduced, tau = tau.star, 
+              X_bcf = X_bcf))
 }
 
 # Causal Forest
@@ -202,19 +200,28 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
     idx <- 1:nrow(X)
   }
   
-  # Causal Forest requires specific setup
-  X_cf <- as.matrix(X0[idx,])  # Covariates (without treatment interactions)
-  Y_cf <- Y[idx]
+  # For Causal Forest, X and X0 should be the same (original covariates)
+  # CF handles treatment internally, so we use X0 which has the original covariates
+  X_cf <- as.matrix(X0[idx,])
+  Y_cf <- Y[idx] 
   Trt_cf <- Trt[idx]
   
+  # Remove any NA or infinite values
+  valid_idx <- complete.cases(X_cf, Y_cf, Trt_cf)
+  X_cf <- X_cf[valid_idx, , drop=FALSE]
+  Y_cf <- Y_cf[valid_idx]
+  Trt_cf <- Trt_cf[valid_idx]
+  
+  # Ensure X_cf is numeric matrix
+  X_cf <- apply(X_cf, 2, as.numeric)
   # Fit Causal Forest (full model with heterogeneous treatment effects)
   fit <- causal_forest(X = X_cf,
                        Y = Y_cf,
                        W = Trt_cf,
-                       num. trees = 2000,
+                       num.trees = 2000,
                        honesty = TRUE,
                        honesty.fraction = 0.5,
-                       ci. group. size = 2)
+                       ci.group.size = 2)
   
   # For reduced model, fit without treatment effect heterogeneity
   f0fn <- function(tau) {
@@ -227,7 +234,7 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   }
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
   
-  Wtau. star <- Y_cf - tau.star * Trt_cf
+  Wtau.star <- Y_cf - tau.star * Trt_cf
   fit_reduced <- regression_forest(X = X_cf, Y = Wtau.star, num.trees = 2000)
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star, X_cf = X_cf))
@@ -274,32 +281,45 @@ predictor_ridge <- function(fit, X_new, X0_new, Trt_new) {
 # Bayesian Causal Forest Predictor
 predictor_bcf <- function(fit, X_new, X0_new, Trt_new) {
   X_new_bcf <- as.matrix(X0_new)
+    # BCF prediction with proper output handling
+      pred_result <- predict(fit$full, 
+                             x_predict_control = X_new_bcf, 
+                             x_predict_moderate = X_new_bcf, 
+                             z_pred = Trt_new,
+                             pi_pred = rep(0.5, nrow(X_new_bcf)),
+                             save_tree_directory = tempdir())
+      
+      if(is.list(pred_result) && "mu" %in% names(pred_result) && "tau" %in% names(pred_result)) {
+        mu_pred <- colMeans(pred_result$mu)  # Average across MCMC samples
+        tau_pred <- colMeans(pred_result$tau)  # Average across MCMC samples
+        
+        # Full model: mu(x) + tau(x) * treatment
+        pfull <- as.numeric(mu_pred + tau_pred * Trt_new)
+      } else {
+        # Fallback if unexpected format
+        pfull <- as.numeric(pred_result)
+      }
+      
+      # Reduced model:  homogeneous treatment effect
+      if(inherits(fit$reduced, "lm")) {
+        preduced_base <- predict(fit$reduced, newdata = data.frame(X_new_bcf))
+      } else {
+        preduced_base <- rep(0, length(Trt_new))
+      }
+      preduced <- as.numeric(preduced_base) + fit$tau * Trt_new  
+  pfull <- as.numeric(pfull)
+  preduced <- as.numeric(preduced)
   
-  # BCF predictions:  mu + tau*treatment
-  pred_bcf <- predict(fit$full, x_predict_control = X_new_bcf, x_predict_moderate = X_new_bcf, pi_pred = rep(0.5, nrow(X_new_bcf)))
-  
-  # Full model:  includes treatment effect heterogeneity
-  pfull <- pred_bcf$mu. mean + pred_bcf$tau. mean * Trt_new
-  
-  # Reduced model: homogeneous treatment effect
-  preduced <- predict(fit$reduced, newdata = data.frame(X_new_bcf)) + fit$tau * Trt_new
-  
-  return(list(pred_full=pfull, pred_reduced=preduced))
+  return(list(pred_full = pfull, pred_reduced = preduced))
 }
 
 # Causal Forest Predictor  
 predictor_causal_forest <- function(fit, X_new, X0_new, Trt_new) {
   X_new_cf <- as.matrix(X0_new)
-  
-  # Causal Forest predictions
-  # Get both mu(x) and tau(x) estimates
-  mu_pred <- predict(regression_forest(fit$full$Y. orig, fit$full$X. orig), X_new_cf)$predictions
+  X_new_cf <- apply(X_new_cf, 2, as.numeric)
   tau_pred <- predict(fit$full, X_new_cf)$predictions
-  
-  # Full model: mu(x) + tau(x) * treatment
-  pfull <- mu_pred + tau_pred * Trt_new
-  
-  # Reduced model: homogeneous treatment effect
+  baseline <- mean(fit$full$Y.orig)  
+  pfull <- baseline + tau_pred * Trt_new
   preduced <- predict(fit$reduced, X_new_cf)$predictions + fit$tau * Trt_new
   
   return(list(pred_full=pfull, pred_reduced=preduced))
