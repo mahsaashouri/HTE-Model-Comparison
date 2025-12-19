@@ -177,7 +177,8 @@ fitter_bcf <- function(X, X0, Y, Trt, tau.range, idx = NA) {
                nsim = 100,
                ntree_control = 10,
                ntree_moderate = 5,
-               save_tree_directory = tempdir(), 
+               #save_tree_directory = tempdir(), 
+               save_tree_directory = NULL, 
                verbose = FALSE)
   # Fit reduced model (always use linear model for consistency)
   f0fn <- function(tau) {
@@ -287,20 +288,20 @@ predictor_bcf <- function(fit, X_new, X0_new, Trt_new) {
                              x_predict_moderate = X_new_bcf, 
                              z_pred = Trt_new,
                              pi_pred = rep(0.5, nrow(X_new_bcf)),
-                             save_tree_directory = tempdir())
+                             #save_tree_directory = tempdir()
+                             save_tree_directory = NULL
+                             )
       
       if(is.list(pred_result) && "mu" %in% names(pred_result) && "tau" %in% names(pred_result)) {
         mu_pred <- colMeans(pred_result$mu)  # Average across MCMC samples
         tau_pred <- colMeans(pred_result$tau)  # Average across MCMC samples
-        
-        # Full model: mu(x) + tau(x) * treatment
+        # Full model
         pfull <- as.numeric(mu_pred + tau_pred * Trt_new)
       } else {
-        # Fallback if unexpected format
         pfull <- as.numeric(pred_result)
       }
       
-      # Reduced model:  homogeneous treatment effect
+      # Reduced model
       if(inherits(fit$reduced, "lm")) {
         preduced_base <- predict(fit$reduced, newdata = data.frame(X_new_bcf))
       } else {
