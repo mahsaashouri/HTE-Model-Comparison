@@ -22,7 +22,7 @@ num_cores <- detectCores() - 1  # Use all cores except one
 ## run as many simulation settings
 #muvec <- rep(1:3, each=4)
 #thetavec <- rep(1:4, 3)
-muvec <- rep(1,4)
+muvec <- rep(2,4)
 thetavec <- 1:4
 rfrun <- FALSE
 # Set up the cluster
