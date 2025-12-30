@@ -9,7 +9,7 @@ set.seed(123567)
 ## Source fitting and nested cv functions
 #setwd("/Users/mahsa/Projects/HTE-Model-Comparison")  ## Change for your computer
 
-setwd("~/Documents/HTEevaluation/HTE-Model-Comparison")
+setwd("~/Projects/HTE-Model-Comparison")
 source("CoreFunctions/CVDiffFunctionsTransformed.R")
 source("CoreFunctions/FitterFunctionsTransformed.R")
 source("Simulation3/OneSim3Run.R")
