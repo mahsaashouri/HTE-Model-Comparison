@@ -10,22 +10,16 @@ set.seed(12356)
 
 ##################################
 ## SOLVDT dataset
-DATA <- read_csv("SOLVDT.csv")
+DATA <- read_csv("SOLVDT. csv")
 
 # Convert treatment to binary (assuming "Enalapril" = 1, "Placebo" = 0)
 DATA$treat <- ifelse(DATA$trtment == "Enalapril", 1, 0)
 
-# Remove the original treatment column and keep pseudosurvival as outcome
-DATA <- DATA %>% select(-trtment)
+# Select only the specified variables
+DATA <- DATA %>% 
+  select(treat, age, gend, smoke, diabet, lvef, weightkg, beat, creatinine, sodium, nyha, pseudosurvival)
 
-# Handle categorical variables - convert 'smoke' to dummy variables
-DATA <- DATA %>%
-  mutate(
-    smoke_current = ifelse(smoke == "Current", 1, 0),
-    smoke_former = ifelse(smoke == "Former", 1, 0),
-    smoke_never = ifelse(smoke == "Never", 1, 0)
-  ) %>%
-  select(-smoke)  # Remove original smoke variable
+head(DATA)
 
 ##################################
 
