@@ -73,7 +73,7 @@ for(j in 1:length(muvec)) {
     TrueThetas[k,] <- results[[k]]$true_thetas
   }
   ## Change file name here:
-  fname <- paste("~/Projects/HTE-Model-Comparison/Simulation3/Results", muvec[j],"Theta",thetavec[j],"n5000.RData", sep="")
+  fname <- paste("~/Projects/HTE-Model-Comparison/Simulation3/Results", muvec[j],"Theta",thetavec[j],"n1000.RData", sep="")
   save(cover_lm, cover_glmnet, cover_glmboost, cover_ridge, CI_lm, CI_glmnet,
        CI_glmboost, CI_ridge, hvalue_lm, hvalue_glmnet, hvalue_glmboost, hvalue_ridge,
        hvalue1_lm, hvalue1_glmnet, hvalue1_glmboost, hvalue1_ridge, TrueThetas,
