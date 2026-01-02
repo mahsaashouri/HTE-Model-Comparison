@@ -162,6 +162,29 @@ for(h in 1:nreps) {
   tau.star.rf <- optimize(f00fn, interval=c(-5, 5))$minimum
   DAT_red$Wtau <- DAT_reduced$Y - tau.star.rf*DAT_reduced$A
   tmp_reduced_rf <- randomForest(Wtau ~., data=DAT_red, maxnodes=16, ntree=100)
+  
+  # Fit BCF model
+  tmp_bcf <- bcf(y = Y,
+                 z = A,
+                 x_control = X_matrix,
+                 x_moderate = X_matrix,
+                 pihat = rep(0.5, n),  # Known propensity score
+                 nburn = 1000,
+                 nsim = 1000)
+  
+  # Reduced model for BCF
+  f_bcf <- function(tau) {
+    Wtau <- Y - tau * A
+    # For reduced model, fit a regression forest
+    fit_reduced <- regression_forest(X = X_matrix, Y = Wtau, num.trees = 1000)
+    pred_reduced <- predict(fit_reduced, X_matrix)$predictions
+    mse_local <- mean((Wtau - pred_reduced)^2)
+    return(mse_local)
+  }
+  tau.star.bcf <- optimize(f_bcf, interval=c(-5, 5))$minimum
+  Wtau.star.bcf <- Y - tau.star.bcf * A
+  tmp_reduced_bcf <- regression_forest(X = X_matrix, Y = Wtau.star.bcf, num.trees = 1000)
+  
 
   # Fit Causal Forest model
     tmp_cf <- causal_forest(X = X_matrix,
@@ -231,9 +254,12 @@ for(h in 1:nreps) {
   new_rf <- fitter_rf(data.frame(Xmat_tmp), data.frame(X0mat_notrt_tmp), Y, A, tau.range=c(-5,5), idx = NA)
   new_rf_pred <- predictor_rf(new_rf, X_new=data.frame(Xmat_tmpk), X0_new=data.frame(X0mat_notrt_tmpk), Trt_new=DATk_reduced$A)
 
+  # BCF predictions
+  bcf_pred_k <- predict(tmp_bcf, X_matrix_k, X_matrix_k, rep(0.5, nr), z_test = Ak)
+  pp_full_bcf <- bcf_pred_k$yhat.mean  # Posterior mean predictions
+  pp_reduced_bcf <- predict(tmp_reduced_bcf, X_matrix_k)$predictions + tau.star.bcf * Ak
+  
   # Causal Forest predictions
-
-  # Get mu(x) from regression forest on original data
    mu_forest <- regression_forest(X_matrix, Y)
    mu_pred_k <- predict(mu_forest, X_matrix_k)$predictions
    tau_pred_k <- predict(tmp_cf, X_matrix_k)$predictions
@@ -246,6 +272,7 @@ for(h in 1:nreps) {
   theta_ridge <- mean((Yk - pp_reduced_ridge)^2) - mean((Yk - pp_full_ridge)^2)
   theta_glmboost <- mean((Yk - pp_reduced_glmboost)^2) - mean((Yk - pp_full_glmboost)^2)
   theta_rf <- mean(squared_loss(new_rf_pred$pred_full, new_rf_pred$pred_reduced, Yk))
+  theta_bcf <- mean((Yk - pp_reduced_bcf)^2) - mean((Yk - pp_full_bcf)^2)
   theta_cf <- mean((Yk - pp_reduced_cf)^2) - mean((Yk - pp_full_cf)^2)
   
   #######################################################
@@ -273,6 +300,8 @@ for(h in 1:nreps) {
   
   ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
                       n_folds = n_folds, reps = 10, bias_reps = 0)
+  ncv_bcf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bcf_funs,
+                       n_folds = n_folds, reps = min(10, nested_cv_reps))
   XX_cf <- data.frame(X_matrix)  
   XX0_cf <- data.frame(X_matrix) 
   ncv_cf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=causal_forest_funs,
@@ -306,13 +335,18 @@ for(h in 1:nreps) {
   CI_rf[h,2] <- ncv_rf$ci_hi
   hvalue_rf[h] <- ncv_rf$hvalue
   
+  cover_bcf[h] <- theta_bcf > ncv_bcf$ci_lo & theta_bcf < ncv_bcf$ci_hi
+  CI_bcf[h,1] <- ncv_bcf$ci_lo
+  CI_bcf[h,2] <- ncv_bcf$ci_hi
+  hvalue_bcf[h] <- ncv_bcf$hvalue
+  
   cover_causal_forest[h] <- theta_cf > ncv_cf$ci_lo & theta_cf < ncv_cf$ci_hi
   CI_causal_forest[h,1] <- ncv_cf$ci_lo
   CI_causal_forest[h,2] <- ncv_cf$ci_hi
   hvalue_causal_forest[h] <- ncv_cf$hvalue
   
   # Store true thetas for all methods
-  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_ridge, theta_glmboost, theta_rf, theta_cf)
+  true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_ridge, theta_glmboost, theta_rf, theta_bcf, theta_cf)
   
   cat("Simulation Replication:   ", h, "\n")
 }
