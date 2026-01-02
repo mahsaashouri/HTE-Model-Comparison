@@ -215,7 +215,7 @@ for(h in 1:nreps) {
     tmp_reduced_cf <- regression_forest(X = X_matrix, Y = Wtau.star.cf, num.trees = 1000)
   
   ## Now, evaluate MSE difference on a much larger "future" dataset
-  nr <- 100000
+  nr <- 1000
   
   ## Generating future observations:  
   epsilon_k <- rnorm(nr, mean = 0, sd = 1)
@@ -372,11 +372,11 @@ for(h in 1:nreps) {
 
 
 save(
-  cover_lm, cover_glmnet, cover_ridge, cover_glmboost, cover_rf, cover_causal_forest,
-  CI_lm, CI_glmnet, CI_ridge, CI_glmboost, CI_rf, CI_causal_forest,
-  hvalue_lm, hvalue_glmnet, hvalue_ridge, hvalue_glmboost, hvalue_rf, hvalue_causal_forest,
+  cover_lm, cover_glmnet, cover_ridge, cover_glmboost, cover_rf, cover_bcf, cover_causal_forest,
+  CI_lm, CI_glmnet, CI_ridge, CI_glmboost, CI_rf, CI_bcf,CI_causal_forest,
+  hvalue_lm, hvalue_glmnet, hvalue_ridge, hvalue_glmboost, hvalue_rf, hvalue_bcf, hvalue_causal_forest,
   true_thetas,
   beta_main, beta_interaction, beta_trt, beta0,
-  file = "Sim1B_HighDim_Extended_1000.RData"
+  file = "Sim1B_HighDim_Extended_500.RData"
 )
 

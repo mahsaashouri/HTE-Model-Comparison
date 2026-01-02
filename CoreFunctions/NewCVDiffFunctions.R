@@ -122,7 +122,7 @@ naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
 
 nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  
                       alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
-                      bias_reps = NA, n_cores = 1) {
+                      bias_reps = NA, n_cores = 4) {
   
   # Compute out-of-fold errors on SE scale
   var_pivots <- c()
