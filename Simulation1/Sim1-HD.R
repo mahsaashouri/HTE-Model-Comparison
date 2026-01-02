@@ -54,6 +54,12 @@ rf_funs <- list(fitter = fitter_rf,
                 loss = squared_loss,
                 name = "rf")
 
+bcf_funs <- list(fitter = fitter_bcf,
+                           predictor = predictor_bcf,
+                           mse = mse,
+                           loss = squared_loss,
+                           name = "bcf")
+
 causal_forest_funs <- list(fitter = fitter_causal_forest,
                            predictor = predictor_causal_forest,
                            mse = mse,
@@ -62,12 +68,12 @@ causal_forest_funs <- list(fitter = fitter_causal_forest,
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:  
-n <- 100
+n <- 500
 n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 500  ## Use nreps = 500 for paper
+nreps <- 5  ## Use nreps = 500 for paper
 
 # Initialize storage for all methods
 cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_bcf <- cover_causal_forest <- rep(NA, nreps)
