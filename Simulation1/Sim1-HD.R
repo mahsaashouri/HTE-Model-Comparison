@@ -20,7 +20,7 @@ beta_interaction <- c(0.5, -2, 0.7, 3, 0.9, rep(0, p - 5))  # Treatment interact
 
 ## Source fitting and nested cv functions
 setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
-source("CoreFunctions/CVDiffFunctions.R")
+source("CoreFunctions/NewCVDiffFunctions.R")
 source("CoreFunctions/NewFitterFunctions.R")
 
 ## Define all method function lists
@@ -55,10 +55,10 @@ rf_funs <- list(fitter = fitter_rf,
                 name = "rf")
 
 bcf_funs <- list(fitter = fitter_bcf,
-                           predictor = predictor_bcf,
-                           mse = mse,
-                           loss = squared_loss,
-                           name = "bcf")
+                 predictor = predictor_bcf,
+                 mse = mse,
+                 loss = squared_loss,
+                 name = "bcf")
 
 causal_forest_funs <- list(fitter = fitter_causal_forest,
                            predictor = predictor_causal_forest,
@@ -73,15 +73,19 @@ n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 5  ## Use nreps = 500 for paper
+nreps <- 1  ## Use nreps = 500 for paper
 
 # Initialize storage for all methods
 cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_bcf <- cover_causal_forest <- rep(NA, nreps)
 hvalue_lm <- hvalue_glmnet <- hvalue_ridge <- hvalue_glmboost <- hvalue_rf <- hvalue_bcf <- hvalue_causal_forest <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_ridge <- CI_glmboost <- CI_rf <- CI_bcf <- CI_causal_forest <- matrix(NA, nrow=nreps, ncol=2)
-true_thetas <- matrix(NA, nreps, 6)  
+true_thetas <- matrix(NA, nreps, 7)  
 
 for(h in 1:nreps) {
+  # Create dedicated temp directory for this rep
+  temp_bcf_dir <- file.path(tempdir(), paste0("bcf_sim_", h))
+  dir.create(temp_bcf_dir, showWarnings = FALSE)
+  
   # Generate random values for x1 to x100 from a normal distribution
   X_matrix <- matrix(rnorm(n * p, mean = 0, sd = 1), nrow = n, ncol = p)
   colnames(X_matrix) <- paste0("x", 1:p)
@@ -169,8 +173,11 @@ for(h in 1:nreps) {
                  x_control = X_matrix,
                  x_moderate = X_matrix,
                  pihat = rep(0.5, n),  # Known propensity score
-                 nburn = 1000,
-                 nsim = 1000)
+                 nburn = 100,
+                 nsim = 100,
+                 use_muscale = TRUE,
+                 use_tauscale = TRUE,
+                 save_tree_directory = tempdir()) 
   
   # Reduced model for BCF
   f_bcf <- function(tau) {
@@ -255,10 +262,16 @@ for(h in 1:nreps) {
   new_rf_pred <- predictor_rf(new_rf, X_new=data.frame(Xmat_tmpk), X0_new=data.frame(X0mat_notrt_tmpk), Trt_new=DATk_reduced$A)
 
   # BCF predictions
-  bcf_pred_k <- predict(tmp_bcf, X_matrix_k, X_matrix_k, rep(0.5, nr), z_test = Ak)
-  pp_full_bcf <- bcf_pred_k$yhat.mean  # Posterior mean predictions
-  pp_reduced_bcf <- predict(tmp_reduced_bcf, X_matrix_k)$predictions + tau.star.bcf * Ak
   
+  bcf_pred_k <- predict(tmp_bcf, 
+                        x_predict_control = X_matrix_k,
+                        x_predict_moderate = X_matrix_k,
+                        pi_pred = rep(0.5, nr),
+                        z_pred = Ak,
+                        save_tree_directory = tempdir())
+  pp_full_bcf <- as.vector(bcf_pred_k$tau + bcf_pred_k$mu) # mu(x) + tau(x)*z
+  pp_reduced_bcf <- predict(tmp_reduced_bcf, X_matrix_k)$predictions + tau.star.bcf * Ak
+
   # Causal Forest predictions
    mu_forest <- regression_forest(X_matrix, Y)
    mu_pred_k <- predict(mu_forest, X_matrix_k)$predictions
@@ -301,7 +314,7 @@ for(h in 1:nreps) {
   ncv_rf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=rf_funs,
                       n_folds = n_folds, reps = 10, bias_reps = 0)
   ncv_bcf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=bcf_funs,
-                       n_folds = n_folds, reps = min(10, nested_cv_reps))
+                       n_folds = n_folds, reps = min(10, nested_cv_reps), n_cores = 4)
   XX_cf <- data.frame(X_matrix)  
   XX0_cf <- data.frame(X_matrix) 
   ncv_cf <- nested_cv(X=XX, X0=XX0, Y=as.vector(Y), Trt=A, tau.range=tau.range, funcs=causal_forest_funs,
@@ -347,6 +360,12 @@ for(h in 1:nreps) {
   
   # Store true thetas for all methods
   true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_ridge, theta_glmboost, theta_rf, theta_bcf, theta_cf)
+  
+  # Clean up at the end of each replication
+  unlink(temp_bcf_dir, recursive = TRUE)
+  # Also clean up any other BCF temp files
+  bcf_files <- list.files(tempdir(), pattern = "bcf.*\\.txt$", full.names = TRUE)
+  file.remove(bcf_files)
   
   cat("Simulation Replication:   ", h, "\n")
 }
