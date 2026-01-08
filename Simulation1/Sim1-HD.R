@@ -175,6 +175,9 @@ for(h in 1:nreps) {
                  pihat = rep(0.5, n),  # Known propensity score
                  nburn = 100,
                  nsim = 100,
+                 ntree_control = 25, ## 25 at least
+                 ntree_moderate = 10, ## 10 at least
+                 n_chains = 1,
                  use_muscale = TRUE,
                  use_tauscale = TRUE,
                  save_tree_directory = tempdir()) 
