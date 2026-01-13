@@ -137,9 +137,19 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,
     cl <- makeCluster(n_cores)
     on.exit(stopCluster(cl), add = TRUE)  # Ensure cleanup
     
-    # Export necessary objects to cluster
+    # Export necessary objects to cluster - ADD the missing functions
     clusterExport(cl, c("X", "X0", "Y", "Trt", "tau.range", "funcs", "n_folds",
-                        "nested_cv_helper"), 
+                        "nested_cv_helper", 
+                        # Add all the fitter and predictor functions
+                        "fitter_rlearner", "predictor_rlearner",
+                        "fitter_bartcause", "predictor_bartcause",
+                        "fitter_lm", "predictor_lm",
+                        "fitter_glmnet", "predictor_glmnet", 
+                        "fitter_ridge", "predictor_ridge",
+                        "fitter_glmboost", "predictor_glmboost",
+                        "fitter_rf", "predictor_rf",
+                        "fitter_causal_forest", "predictor_causal_forest",
+                        "squared_loss", "mse"), 
                   envir = environment())
     
     # Load required libraries on each worker
@@ -150,6 +160,8 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,
       library(randomForest)
       library(bcf)
       library(grf)
+      library(bartCause)
+      library(rlearner) 
     })
     
     # Run parallel computation

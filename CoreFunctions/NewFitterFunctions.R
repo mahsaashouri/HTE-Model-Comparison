@@ -1,7 +1,10 @@
-# Load additional libraries for the new methods
-library(glmnet)  # Already loaded, but ridge uses this too
-library(bcf)     # For Bayesian Causal Forest
-library(grf)     # For Causal Forest
+library(glmnet)     # Already loaded, but ridge uses this too
+library(bcf)        # For Bayesian Causal Forest
+library(grf)        # For Causal Forest
+library(bartCause)  # For bartCause
+#library(devtools) 
+#install_github("xnie/rlearner")
+library(rlearner)   # For rlearner
 
 # Your existing functions remain the same
 squared_loss <- function(fhat_full, fhat_reduced, y) {
@@ -220,7 +223,7 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   fit <- causal_forest(X = X_cf,
                        Y = Y_cf,
                        W = Trt_cf,
-                       num.trees = 2000,
+                       num.trees = 100,
                        honesty = TRUE,
                        honesty.fraction = 0.5,
                        ci.group.size = 2)
@@ -229,7 +232,7 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   f0fn <- function(tau) {
     Wtau <- Y_cf - tau * Trt_cf
     # Simple regression forest for reduced model
-    fit_reduced <- regression_forest(X = X_cf, Y = Wtau, num.trees = 2000)
+    fit_reduced <- regression_forest(X = X_cf, Y = Wtau, num.trees = 100)
     pred_reduced <- predict(fit_reduced, X_cf)$predictions
     mse_local <- mean((Wtau - pred_reduced)^2)
     return(mse_local)
@@ -237,10 +240,96 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
   
   Wtau.star <- Y_cf - tau.star * Trt_cf
-  fit_reduced <- regression_forest(X = X_cf, Y = Wtau.star, num.trees = 2000)
+  fit_reduced <- regression_forest(X = X_cf, Y = Wtau.star, num.trees = 100)
   
   return(list(full=fit, reduced=fit_reduced, tau = tau.star, X_cf = X_cf))
 }
+
+
+# bartCause fitter
+fitter_bartcause <- function(X, X0, Y, Trt, tau.range, idx = NA) {
+  if(sum(is.na(idx)) > 0) {
+    idx <- 1:nrow(X)
+  }
+  
+  # Combine X and X0 as confounders (assuming X includes treatment interactions)
+  confounders <- as.matrix(X0[idx,])
+  Y_bc <- Y[idx]
+  Trt_bc <- as.numeric(Trt[idx])
+  
+  # Fit bartCause model (this is the "full" model)
+  fit_full <- bartc(response = Y_bc,
+                    treatment = Trt_bc,
+                    confounders = confounders,
+                    estimand = "ate",
+                    method.rsp = "bart",
+                    method.trt = "bart",
+                    verbose = FALSE)
+  
+  # For reduced model, find optimal tau and fit baseline model
+  f0fn <- function(tau) {
+    Wtau <- Y_bc - tau * Trt_bc
+    fit_reduced <- lm(Wtau ~ confounders)
+    mse_local <- mean((Wtau - fitted(fit_reduced))^2)
+    return(mse_local)
+  }
+  tau.star <- optimize(f0fn, interval=tau.range)$minimum
+  
+  Wtau.star <- Y_bc - tau.star * Trt_bc
+  fit_reduced <- lm(Wtau.star ~ confounders)
+  
+  return(list(full = fit_full, reduced = fit_reduced, tau = tau.star, 
+              confounders = confounders))
+}
+
+# rlearner fitter (using rlasso as default)
+fitter_rlearner <- function(X, X0, Y, Trt, tau.range, idx = NA, method = "rlasso") {
+  if(sum(is.na(idx)) > 0) {
+    idx <- 1:nrow(X)
+  }
+  
+  # Use X0 as features for rlearner
+  features <- as.matrix(X0[idx,])
+  Y_rl <- Y[idx]
+  Trt_rl <- as.numeric(Trt[idx])
+  
+  # Calculate baseline (mean of control outcomes)
+  baseline <- ifelse(sum(Trt_rl == 0) > 0, mean(Y_rl[Trt_rl == 0]), mean(Y_rl))
+  
+  # Fit R-learner
+  if (method == "rlasso") {
+    fit_full <- rlasso(features, Trt_rl, Y_rl)
+  } else if (method == "rboost") {
+    fit_full <- rboost(features, Trt_rl, Y_rl)
+  } else if (method == "rkern") {
+    fit_full <- rkern(features, Trt_rl, Y_rl)
+  } else {
+    stop("Unsupported rlearner method.  Choose from: rlasso, rboost, rkern")
+  }
+  
+  # For reduced model, use glmnet to avoid ALL column name issues
+  f0fn <- function(tau) {
+    Wtau <- Y_rl - tau * Trt_rl
+    tryCatch({
+      fit_reduced <- cv.glmnet(features, Wtau, family = "gaussian", nfolds = 5, alpha = 1)
+      pred <- predict(fit_reduced, newx = features, s = "lambda.min")
+      mse_local <- mean((Wtau - as.vector(pred))^2)
+      return(mse_local)
+    }, error = function(e) {
+      # Fallback:  simple mean
+      return(mean(Wtau^2))
+    })
+  }
+  
+  tau.star <- optimize(f0fn, interval = tau.range)$minimum
+  
+  Wtau.star <- Y_rl - tau.star * Trt_rl
+  fit_reduced <- cv.glmnet(features, Wtau.star, family = "gaussian", nfolds = 5, alpha = 1)
+  
+  return(list(full = fit_full, reduced = fit_reduced, tau = tau.star,
+              features = features, baseline = baseline))
+}
+
 
 ### Predictor Functions 
 predictor_lm <- function(fit, X_new, X0_new, Trt_new) {
@@ -327,6 +416,58 @@ predictor_causal_forest <- function(fit, X_new, X0_new, Trt_new) {
   return(list(pred_full=pfull, pred_reduced=preduced))
 }
 
+
+# bartCause predictor
+# Updated bartCause predictor
+predictor_bartcause <- function(fit, X_new, X0_new, Trt_new) {
+  X_new_bc <- as.matrix(X0_new)
+  
+  # Get the posterior mean of the control outcome (mu.0) and treatment outcome (mu.1)
+  mu_0 <- extract(fit$full, "mu.0")  # Control outcomes
+  mu_1 <- extract(fit$full, "mu.1")  # Treatment outcomes
+  
+  # For new predictions, we use the posterior means
+  mu_0_mean <- colMeans(mu_0)
+  mu_1_mean <- colMeans(mu_1)
+  
+  # Full model prediction
+  pfull <- ifelse(Trt_new == 1, mean(mu_1_mean), mean(mu_0_mean))
+  
+  # Alternatively, you can use the individual treatment effect
+  # icate <- extract(fit$full, "icate")
+  # baseline <- mean(mu_0_mean)
+  # pfull <- baseline + colMeans(icate) * Trt_new
+  
+  # Reduced model prediction
+  if(inherits(fit$reduced, "lm")) {
+    preduced_base <- predict(fit$reduced, newdata = data.frame(fit$confounders))
+    preduced <- mean(preduced_base) + fit$tau * Trt_new
+  } else {
+    preduced <- mean(mu_0_mean) + fit$tau * Trt_new
+  }
+  
+  return(list(pred_full = as.numeric(pfull), pred_reduced = as.numeric(preduced)))
+}
+# rlearner predictor
+predictor_rlearner <- function(fit, X_new, X0_new, Trt_new) {
+  X_new_rl <- as.matrix(X0_new)
+  
+  # Get treatment effect predictions from rlearner
+  tau_pred <- predict(fit$full, X_new_rl)
+  
+  # Use stored baseline
+  baseline <- fit$baseline
+  
+  pfull <- baseline + tau_pred * Trt_new
+  
+  # Reduced model prediction using glmnet - pure matrix operations
+  preduced_base <- predict(fit$reduced, newx = X_new_rl, s = "lambda.min")
+  preduced <- as.vector(preduced_base) + fit$tau * Trt_new
+  
+  return(list(pred_full = as.numeric(pfull), pred_reduced = as.numeric(preduced)))
+}
+
+
 ### Function Lists for New Methods ###
 
 ridge_funs <- list(fitter = fitter_ridge,
@@ -377,3 +518,34 @@ bart_funs <- list(fitter = fitter_bart,
                   mse = mse,
                   loss = squared_loss,
                   name = "bart")
+
+bartcause_funs <- list(fitter = fitter_bartcause,
+                       predictor = predictor_bartcause,
+                       mse = mse,
+                       loss = squared_loss,
+                       name = "bartcause")
+
+rlearner_lasso_funs <- list(fitter = function(X, X0, Y, Trt, tau.range, idx = NA) {
+  fitter_rlearner(X, X0, Y, Trt, tau.range, idx, method = "rlasso")
+},
+predictor = predictor_rlearner,
+mse = mse,
+loss = squared_loss,
+name = "rlearner_lasso")
+
+rlearner_boost_funs <- list(fitter = function(X, X0, Y, Trt, tau.range, idx = NA) {
+  fitter_rlearner(X, X0, Y, Trt, tau.range, idx, method = "rboost")
+},
+predictor = predictor_rlearner,
+mse = mse,
+loss = squared_loss,
+name = "rlearner_boost")
+
+rlearner_kernel_funs <- list(fitter = function(X, X0, Y, Trt, tau.range, idx = NA) {
+  fitter_rlearner(X, X0, Y, Trt, tau.range, idx, method = "rkern")
+},
+predictor = predictor_rlearner,
+mse = mse,
+loss = squared_loss,
+name = "rlearner_kernel")
+
