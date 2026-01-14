@@ -83,7 +83,7 @@ n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 1  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 
 # Initialize storage for all methods
 cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_bcf <- cover_causal_forest <- cover_bartcause <- cover_rlearner_lasso <- rep(NA, nreps)
@@ -419,6 +419,6 @@ save(
   hvalue_bartcause, hvalue_rlearner_lasso,
   true_thetas,
   beta_main, beta_interaction, beta_trt, beta0,
-  file = "Sim1B_HighDim_Extended_500. RData"
+  file = "Sim1A_Extended_40.RData"
 )
 
