@@ -1,5 +1,5 @@
 ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
-                    trans = list(identity)) {
+                   trans = list(identity)) {
   n <- length(Y)
   fold_id <- sample(1:n_folds, size=n, replace=TRUE)
   
@@ -17,7 +17,7 @@ ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
   }
   err_hat <- mean(ehat)
   se_naive <- sd(errors)/sqrt(n)
-    
+  
   split_id <- sample(0:1, size=n, replace=TRUE)
   ehat0 <- ehat1 <- rep(NA, n_folds)
   for(k in 1:n_folds) {
@@ -44,7 +44,7 @@ ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
   print(c(se_nb, se_naive))
   std_err <- max(c(se_naive, se_nb))
   return(list("err_hat" = err_hat,
-              "std_err" = std_err,
+              "std_err" = std_err,  # ADDED: Return standard error
               "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
               "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
 }
@@ -64,25 +64,11 @@ data_splitting <- function(X, X0, Y, Trt, tau.range, funcs, train_prob, alpha = 
   
   errors <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_ind==0])
   
-  #ehat <- rep(NA, 5)
-  #for(k in 1:5) {
-  #   train_indk <- sample(0:1, size=n, replace=TRUE, prob=c(train_prob, 1 - train_prob))
-  #  
-  #  
-  #   fitk <- funcs$fitter(as.matrix(X[train_indk ==1, ]), as.matrix(X0[train_indk ==1, ]), Y[train_indk == 1],
-  #                      Trt[train_indk == 1], tau.range)
-  #   predsk <- funcs$predictor(fit, X[train_indk == 0, ], X0[train_indk==0,], Trt[train_indk==0])
-  #  
-  #   errorsk <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[train_indk==0])
-  #   ehat[k] <- mean(errors) - mean(errorsk)
-  #}
- # bb <- mean(ehat)
-  
   err_hat <- mean(errors)
   std_err <- sd(errors)/sqrt(sum(train_ind==0))
   
   return(list("err_hat" = err_hat,
-              "std_err" = std_err,
+              "std_err" = std_err,  # ADDED: Return standard error
               "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
               "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
 }
@@ -95,19 +81,18 @@ naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
     fold_id <- (1:nrow(X)) %% n_folds + 1
     fold_id <- sample(fold_id)
   }
-
+  
   errors <- c()
   mse_full <- c()
   mse_reduced <- c()
   gp_errors <- c()
   for(k in 1:n_folds) {
-
+    
     fit <- funcs$fitter(as.matrix(X[fold_id !=k, ]), as.matrix(X0[fold_id !=k, ]), Y[fold_id != k],
                         Trt[fold_id != k], tau.range)
     preds <- funcs$predictor(fit, X[fold_id == k, ], X0[fold_id==k,], Trt[fold_id==k])
-   
+    
     error_k <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[fold_id == k])
-    #A <- cbind(preds$pred_full, preds$pred_reduced, Y[fold_id==k], error_k)
     
     errors <- c(errors, error_k)
     temp_vec <- c()
@@ -116,35 +101,37 @@ naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
     }
     gp_errors <- rbind(gp_errors, temp_vec)
   }
-
+  
+  std_err <- sd(errors) / sqrt(length(Y))  # Calculate standard error
+  
   return(list("err_hat" = mean(errors),
-              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
-              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
+              "std_err" = std_err,  # ADDED: Return standard error
+              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * std_err,
               "raw_mean" = mean(errors),
               "sd" = sd(errors),
               "group_err_hat" = apply(gp_errors, 2, mean),
               "group_sd" = apply(gp_errors, 2, sd),
               "raw_errors" = errors,
               "fold_id" = fold_id))
-
+  
 }
 
 
-# nested CV
+# nested CV - REVISED to return standard error
 
 nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c(0.01, 0.05, 0.1, 0.25, 0.5),
                       bias_reps = NA, n_cores = 1) {
-
+  
   #compute out-of-fold errors on SE scale
   var_pivots <- c()
   gp_errs <- c()
   ho_errs <- c()
   mse_full <- c()
   mse_reduced <- c()
-
-  #if(n_cores == 1){
+  
   raw <- lapply(1:reps, function(i){nested_cv_helper(X, X0, Y, Trt, tau.range, funcs, n_folds)})
-  #}
+  
   for(i in 1:reps) {
     temp <- raw[[i]]
     var_pivots <- rbind(var_pivots, temp$pivots)
@@ -154,11 +141,11 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c
   # look at the estimate of inflation after each repetition
   ugp_infl <- sqrt(max(0, mean(var_pivots[, 1]^2 - var_pivots[, 2]))) / (sd(ho_errs) / sqrt(n_sub))
   ugp_infl <- max(1, min(ugp_infl, sqrt(n_folds)))
-
+  
   #estimate of inflation at each time step
   infl_est2 <- sqrt(pmax(0, sapply(1:reps, function(i){mean(var_pivots[1:(i*n_folds), 1]^2 - var_pivots[1:(i*n_folds), 2])}))) /
     (sd(ho_errs) / sqrt(n_sub))
-
+  
   #bias correction
   cv_means <- c() #estimated pred error from normal CV
   bias_est <- 0
@@ -172,28 +159,28 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,  alpha = c
       temp <- naive_cv(X, X0, Y, Trt, tau.range, funcs, n_folds)
       cv_means <- c(cv_means, temp$err_hat)
     }
-
+    
     bias_est <- (mean(ho_errs) - mean(cv_means)) * (1 + ((n_folds - 2) / (n_folds ))^(1.5))
   }
   pred_est <- mean(ho_errs) - bias_est #debiased estimate
-
+  
+  # ADDED: Calculate standard error directly
+  std_err <- sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+  
   results <- list()
   zero_between_bounds <- rep(NA, length(alpha))
-  std.err <- sd(ho_errs) / sqrt(length(Y)) * ugp_infl
-  results[["ci_lo"]] <- pred_est - std.err*qnorm(1 - 0.05/2)
-  results[["ci_hi"]] <- pred_est + std.err*qnorm(1 - 0.05/2)
-  results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std.err)
-  results[["hvalue1sided"]] <- pnorm(pred_est/std.err, lower.tail=FALSE)
+  results[["ci_lo"]] <- pred_est - std_err*qnorm(1 - 0.05/2)
+  results[["ci_hi"]] <- pred_est + std_err*qnorm(1 - 0.05/2)
+  results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std_err)
+  results[["hvalue1sided"]] <- pnorm(pred_est/std_err, lower.tail=FALSE)
+  results[["std_err"]] <- std_err  # ADDED: Return standard error directly
   results[["sd_infl"]] <- ugp_infl
   results[["err_hat"]] <- pred_est
   results[["raw_mean"]] <- mean(ho_errs)
   results[["bias_est"]] <- bias_est
   results[["sd"]] <- sd(ho_errs)
   results[["running_sd_infl"]] <- infl_est2
-  #results[["prop_zero_CI"]] <- mean(zero_between_bounds)
-  #results[["mse_full"]] <- mse_full
-  # results[["mse_reduced"]] <- mse_reduced
-
+  
   return(results)
 }
 
@@ -201,11 +188,11 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, func
   fold_id <- 1:nrow(X) %% n_folds + 1
   fold_id <- sample(fold_id[1:(nrow(X) %/% n_folds * n_folds)]) #handle case where n doesn't divide n_folds
   fold_id <- c(fold_id, rep(0, nrow(X) %% n_folds))
-
+  
   #nested CV model fitting
   ho_errors <- array(0, dim = c(n_folds, n_folds, nrow(X) %/% n_folds))
   #^ entry i, j is error on fold i,
-  # when folds i & j are not used for model fitting.
+  # when folds i & j are not used for model fitting. 
   for(f1 in 1:(n_folds - 1)) {
     for(f2 in (f1+1):n_folds) {
       test_idx <- c(which(fold_id == f1), which(fold_id == f2))
@@ -216,8 +203,8 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, func
       ho_errors[f2, f1, ] <- funcs$loss(preds$pred_full[fold_id == f2], preds$pred_reduced[fold_id == f2], Y[fold_id == f2])
     }
   }
-
-  #e_bar - f_bar in the notation of the paper. n_folds x 1 matrix
+  
+  #e_bar - f_bar in the notation of the paper.  n_folds x 1 matrix
   out_mat <- matrix(0, n_folds, 2)
   for(f1 in 1:(n_folds)) {
     test_idx <- which(fold_id == f1)
@@ -225,7 +212,7 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, func
                         tau.range)
     preds <- funcs$predictor(fit, X[test_idx, ], X0[test_idx, ], Trt[test_idx])
     e_out <- funcs$loss(preds$pred_full, preds$pred_reduced, Y[test_idx]) ## Change this
-
+    
     #loop over other folds
     e_bar_t <- c() # errors from internal CV
     for(f2 in 1:n_folds) {
@@ -235,7 +222,7 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, func
     out_mat[f1, 1] <- mean(e_bar_t) - mean(e_out) # (a) terms
     out_mat[f1, 2] <- var(e_out) / length(test_idx) # (b) terms
   }
-
+  
   #errors on points not used for fitting, combined across all runs (used for point estimate)
   all_ho_errs <- c()
   for(f1 in 1:(n_folds - 1)) {
@@ -243,7 +230,7 @@ nested_cv_helper <- function(X, X0, Y, Trt, tau.range, funcs, n_folds = 10, func
       all_ho_errs <- c(all_ho_errs, ho_errors[f1, f2, ], ho_errors[f2, f1, ])
     }
   }
-
+  
   return(list("pivots" = out_mat,
               "errs" = all_ho_errs))
 }
