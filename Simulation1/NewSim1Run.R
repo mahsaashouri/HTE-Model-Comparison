@@ -78,7 +78,7 @@ n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 1  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 
 # Initialize storage for all methods (original + new)
 cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
