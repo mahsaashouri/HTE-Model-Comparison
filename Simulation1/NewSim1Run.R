@@ -16,10 +16,10 @@ beta0 <- 2
 beta1 <- 3
 beta2 <- -1
 beta3 <- 1.5
-beta4 <- 0.5
-beta5 <- -2
-#beta4 <- 0
-#beta5 <- 0
+#beta4 <- 0.5
+#beta5 <- -2
+beta4 <- 0
+beta5 <- 0
 
 ## Source fitting and nested cv functions
 setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
@@ -374,6 +374,6 @@ save(
   #bias_est_ridge, bias_est_bcf, bias_est_causal_forest,
   # True thetas for all methods
   true_thetas,
-  file = "Sim1_100. RData"
+  file = "Sim1B_100.RData"
 )
 
