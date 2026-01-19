@@ -73,7 +73,7 @@ rf_funs <- list(fitter = fitter_rf,
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:  
-n <- 100
+n <- 500
 n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
@@ -374,6 +374,6 @@ save(
   #bias_est_ridge, bias_est_bcf, bias_est_causal_forest,
   # True thetas for all methods
   true_thetas,
-  file = "Sim1B_100.RData"
+  file = "Sim1A_500.RData"
 )
 
