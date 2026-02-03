@@ -8,7 +8,7 @@ library(bartCause)
 library(rlearner)
 
 library(devtools)
-install_github("xnie/rlearner")
+#install_github("xnie/rlearner")
 
 
 ##################################
@@ -25,10 +25,9 @@ beta_trt <- 1.5  # Treatment main effect
 beta_interaction <- c(0.5, -2, 0.7, 3, 0.9, rep(0, p - 5))  # Treatment interactions
 
 ## Source fitting and nested cv functions
-#setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
-setwd("~/Downloads")
-source("NewCVDiffFunctions.R")
-source("NewFitterFunctions.R")
+setwd("~/Projects/HTE-Model-Comparison")  ## Change for your computer
+source("CoreFunctions/NewCVDiffFunctions.R")
+source("CoreFunctions/NewFitterFunctions.R")
 
 ## Define all method function lists
 linear_regression_funs <- list(fitter = fitter_lm,
@@ -83,12 +82,12 @@ name = "rlearner_lasso")
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:
-n <- 500
+n <- 100
 n_folds <- 5
-nested_cv_reps <- 10 ## Use 50 or 100 for paper
+nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 5  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 
 # Initialize storage for all methods
 cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_bcf <- cover_causal_forest <- cover_bartcause <- cover_rlearner_lasso <- rep(NA, nreps)
