@@ -4,7 +4,7 @@ library(grf)        # For Causal Forest
 library(bartCause)  # For bartCause
 #library(devtools) 
 #install_github("xnie/rlearner")
-library(rlearner)   # For rlearner
+#library(rlearner)   # For rlearner
 
 # Your existing functions remain the same
 squared_loss <- function(fhat_full, fhat_reduced, y) {
@@ -199,6 +199,7 @@ fitter_bcf <- function(X, X0, Y, Trt, tau.range, idx = NA) {
               X_bcf = X_bcf))
 }
 
+
 # Causal Forest
 fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   if(sum(is.na(idx)) > 0) {
@@ -207,42 +208,36 @@ fitter_causal_forest <- function(X, X0, Y, Trt, tau.range, idx = NA) {
   
   # For Causal Forest, X and X0 should be the same (original covariates)
   # CF handles treatment internally, so we use X0 which has the original covariates
-  X_cf <- as.matrix(X0[idx,])
+  X_cf <- as.matrix(X[idx,])
+  X0_cf <- as.matrix(X0[idx,])
   Y_cf <- Y[idx] 
   Trt_cf <- Trt[idx]
   
   # Remove any NA or infinite values
   valid_idx <- complete.cases(X_cf, Y_cf, Trt_cf)
+  X0_cf <- X0_cf[valid_idx, , drop=FALSE]
   X_cf <- X_cf[valid_idx, , drop=FALSE]
   Y_cf <- Y_cf[valid_idx]
   Trt_cf <- Trt_cf[valid_idx]
   
-  # Ensure X_cf is numeric matrix
-  X_cf <- apply(X_cf, 2, as.numeric)
   # Fit Causal Forest (full model with heterogeneous treatment effects)
-  fit <- causal_forest(X = X_cf,
-                       Y = Y_cf,
-                       W = Trt_cf,
-                       num.trees = 100,
-                       honesty = TRUE,
-                       honesty.fraction = 0.5,
-                       ci.group.size = 2)
+  fit <- regression_forest(X = X_cf, Y = Y_cf, num.trees = 100)
   
   # For reduced model, fit without treatment effect heterogeneity
   f0fn <- function(tau) {
     Wtau <- Y_cf - tau * Trt_cf
     # Simple regression forest for reduced model
-    fit_reduced <- regression_forest(X = X_cf, Y = Wtau, num.trees = 100)
-    pred_reduced <- predict(fit_reduced, X_cf)$predictions
+    fit_reduced <- regression_forest(X = X0_cf, Y = Wtau, num.trees = 100)
+    pred_reduced <- predict(fit_reduced, X0_cf)$predictions
     mse_local <- mean((Wtau - pred_reduced)^2)
     return(mse_local)
   }
   tau.star <- optimize(f0fn, interval=tau.range)$minimum
   
   Wtau.star <- Y_cf - tau.star * Trt_cf
-  fit_reduced <- regression_forest(X = X_cf, Y = Wtau.star, num.trees = 100)
+  fit_reduced <- regression_forest(X = X0_cf, Y = Wtau.star, num.trees = 100)
   
-  return(list(full=fit, reduced=fit_reduced, tau = tau.star, X_cf = X_cf))
+  return(list(full=fit, reduced=fit_reduced, tau = tau.star))
 }
 
 
@@ -404,17 +399,23 @@ predictor_bcf <- function(fit, X_new, X0_new, Trt_new) {
   return(list(pred_full = pfull, pred_reduced = preduced))
 }
 
-# Causal Forest Predictor  
+# Causal Forest Predictor 
 predictor_causal_forest <- function(fit, X_new, X0_new, Trt_new) {
-  X_new_cf <- as.matrix(X0_new)
-  X_new_cf <- apply(X_new_cf, 2, as.numeric)
-  tau_pred <- predict(fit$full, X_new_cf)$predictions
-  baseline <- mean(fit$full$Y.orig)  
-  pfull <- baseline + tau_pred * Trt_new
-  preduced <- predict(fit$reduced, X_new_cf)$predictions + fit$tau * Trt_new
-  
+  pfull <- predict(fit$full, as.matrix(X_new))$predictions
+  preduced <- predict(fit$reduced, as.matrix(X0_new))$predictions + fit$tau*Trt_new
   return(list(pred_full=pfull, pred_reduced=preduced))
 }
+
+#predictor_causal_forest <- function(fit, X_new, X0_new, Trt_new) {
+#  X_new_cf <- as.matrix(X0_new)
+#  X_new_cf <- apply(X_new_cf, 2, as.numeric)
+#  tau_pred <- predict(fit$full, X_new_cf)$predictions
+#  baseline <- mean(fit$full$Y.orig)  
+#  pfull <- baseline + tau_pred * Trt_new
+#  preduced <- predict(fit$reduced, X_new_cf)$predictions + fit$tau * Trt_new
+#  
+#  return(list(pred_full=pfull, pred_reduced=preduced))
+#}
 
 
 # bartCause predictor
