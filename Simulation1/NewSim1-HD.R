@@ -22,6 +22,9 @@ beta0 <- 2
 p <- 100  # Total number of predictors
 beta_main <- c(3, -1, 0.8, -0.6, 1.2, rep(0, p - 5))  # Main effects
 beta_trt <- 1.5  # Treatment main effect
+# setting A
+#beta_interaction <- rep(0, p)  # Treatment interactions
+# setting B
 beta_interaction <- c(0.5, -2, 0.7, 3, 0.9, rep(0, p - 5))  # Treatment interactions
 
 ## Source fitting and nested cv functions
@@ -94,6 +97,8 @@ cover_lm <- cover_glmnet <- cover_ridge <- cover_glmboost <- cover_rf <- cover_b
 hvalue_lm <- hvalue_glmnet <- hvalue_ridge <- hvalue_glmboost <- hvalue_rf <- hvalue_bcf <- hvalue_causal_forest <- hvalue_bartcause <- hvalue_rlearner_lasso <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_ridge <- CI_glmboost <- CI_rf <- CI_bcf <- CI_causal_forest <- CI_bartcause <- CI_rlearner_lasso <- matrix(NA, nrow=nreps, ncol=2)
 true_thetas <- matrix(NA, nreps, 8)
+se_lm <- se_glmnet <- se_glmboost <- se_rf <- rep(NA, nreps)
+se_ridge <- se_rlearner_lasso <- se_causal_forest <- rep(NA, nreps)
 
 for(h in 1:nreps) {
 
@@ -362,32 +367,45 @@ for(h in 1:nreps) {
   CI_lm[h,1] <- ncv_lm$ci_lo
   CI_lm[h,2] <- ncv_lm$ci_hi
   hvalue_lm[h] <- ncv_lm$hvalue
+  se_lm[h] <- ncv_lm$std_err 
+
 
   cover_glmnet[h] <- theta_glmnet > ncv_net$ci_lo & theta_glmnet < ncv_net$ci_hi
   CI_glmnet[h,1] <- ncv_net$ci_lo
   CI_glmnet[h,2] <- ncv_net$ci_hi
   hvalue_glmnet[h] <- ncv_net$hvalue
+  se_glmnet[h] <- ncv_net$std_err
+
 
   cover_ridge[h] <- theta_ridge > ncv_ridge$ci_lo & theta_ridge < ncv_ridge$ci_hi
   CI_ridge[h,1] <- ncv_ridge$ci_lo
   CI_ridge[h,2] <- ncv_ridge$ci_hi
   hvalue_ridge[h] <- ncv_ridge$hvalue
+  se_ridge[h] <- ncv_ridge$std_err
+
+  
 
   cover_glmboost[h] <- theta_glmboost > ncv_boost$ci_lo & theta_glmboost < ncv_boost$ci_hi
   CI_glmboost[h,1] <- ncv_boost$ci_lo
   CI_glmboost[h,2] <- ncv_boost$ci_hi
   hvalue_glmboost[h] <- ncv_boost$hvalue
+  se_glmboost[h] <- ncv_boost$std_err
+
 
   cover_rf[h] <- theta_rf > ncv_rf$ci_lo & theta_rf < ncv_rf$ci_hi
   CI_rf[h,1] <- ncv_rf$ci_lo
   CI_rf[h,2] <- ncv_rf$ci_hi
   hvalue_rf[h] <- ncv_rf$hvalue
+  se_rf[h] <- ncv_rf$std_err
+
 
 
   cover_causal_forest[h] <- theta_cf > ncv_cf$ci_lo & theta_cf < ncv_cf$ci_hi
   CI_causal_forest[h,1] <- ncv_cf$ci_lo
   CI_causal_forest[h,2] <- ncv_cf$ci_hi
   hvalue_causal_forest[h] <- ncv_cf$hvalue
+  se_causal_forest[h] <- ncv_cf$std_err
+
 
   #cover_bartcause[h] <- theta_bartcause > ncv_bartcause$ci_lo & theta_bartcause < ncv_bartcause$ci_hi
   #CI_bartcause[h,1] <- ncv_bartcause$ci_lo
@@ -398,6 +416,7 @@ for(h in 1:nreps) {
   #CI_rlearner_lasso[h,1] <- ncv_rlearner$ci_lo
   #CI_rlearner_lasso[h,2] <- ncv_rlearner$ci_hi
   #hvalue_rlearner_lasso[h] <- ncv_rlearner$hvalue
+  #se_rlearner_lasso[h] <- ncv_rlearner$std_err
 
   # Store true thetas for all methods
   true_thetas[h,] <- c(theta_lm, theta_glmnet, theta_ridge, theta_glmboost, theta_rf, theta_cf, 0, 0)

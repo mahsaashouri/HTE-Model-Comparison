@@ -47,7 +47,7 @@ ncv_nb <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
   print(c(se_nb, se_naive))
   std_err <- max(c(se_naive, se_nb))
   return(list("err_hat" = err_hat,
-              "std_err" = std_err,
+              "std_err" = std_err,  # ADDED: Return standard error
               "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
               "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
 }
@@ -71,7 +71,7 @@ data_splitting <- function(X, X0, Y, Trt, tau.range, funcs, train_prob, alpha = 
   std_err <- sd(errors)/sqrt(sum(train_ind==0))
   
   return(list("err_hat" = err_hat,
-              "std_err" = std_err,
+              "std_err" = std_err,  # ADDED: Return standard error
               "ci_lo" = err_hat - qnorm(1-alpha/2) * std_err,
               "ci_hi" = err_hat + qnorm(1-alpha/2) * std_err))
 }
@@ -105,9 +105,12 @@ naive_cv <- function(X, X0, Y, Trt, tau.range, funcs, n_folds, alpha = 0.05,
     gp_errors <- rbind(gp_errors, temp_vec)
   }
   
+  std_err <- sd(errors) / sqrt(length(Y))  # ADDED: Calculate standard error
+  
   return(list("err_hat" = mean(errors),
-              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
-              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * sd(errors) / sqrt(length(Y)),
+              "std_err" = std_err,  # ADDED: Return standard error
+              "ci_lo" = mean(errors) - qnorm(1-alpha/2) * std_err,
+              "ci_hi" = mean(errors) + qnorm(1-alpha/2) * std_err,
               "raw_mean" = mean(errors),
               "sd" = sd(errors),
               "group_err_hat" = apply(gp_errors, 2, mean),
@@ -212,13 +215,16 @@ nested_cv <- function(X, X0, Y, Trt, tau.range, funcs, reps, n_folds,
   }
   pred_est <- mean(ho_errs) - bias_est # Debiased estimate
   
+  # ADDED: Calculate standard error directly
+  std_err <- sd(ho_errs) / sqrt(length(Y)) * ugp_infl
+  
   results <- list()
   zero_between_bounds <- rep(NA, length(alpha))
-  std.err <- sd(ho_errs) / sqrt(length(Y)) * ugp_infl
-  results[["ci_lo"]] <- pred_est - std.err*qnorm(1 - 0.05/2)
-  results[["ci_hi"]] <- pred_est + std.err*qnorm(1 - 0.05/2)
-  results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std.err)
-  results[["hvalue1sided"]] <- pnorm(pred_est/std.err, lower.tail=FALSE)
+  results[["ci_lo"]] <- pred_est - std_err*qnorm(1 - 0.05/2)
+  results[["ci_hi"]] <- pred_est + std_err*qnorm(1 - 0.05/2)
+  results[["hvalue"]] <- 2*pnorm(-abs(pred_est)/std_err)
+  results[["hvalue1sided"]] <- pnorm(pred_est/std_err, lower.tail=FALSE)
+  results[["std_err"]] <- std_err  # ADDED: Return standard error directly
   results[["sd_infl"]] <- ugp_infl
   results[["err_hat"]] <- pred_est
   results[["raw_mean"]] <- mean(ho_errs)
