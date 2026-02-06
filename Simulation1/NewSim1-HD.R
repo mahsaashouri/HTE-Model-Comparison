@@ -85,7 +85,7 @@ name = "rlearner_lasso")
 
 # Set the number of observations n, number of folds, and
 # number of nested cv replications:
-n <- 100
+n <- 500
 n_folds <- 5
 nested_cv_reps <- 50 ## Use 50 or 100 for paper
 
@@ -425,15 +425,11 @@ for(h in 1:nreps) {
 }
 
 
-#save(
-#  cover_lm, cover_glmnet, cover_ridge, cover_glmboost, cover_rf, cover_causal_forest,
-#  cover_bartcause, cover_rlearner_lasso,
-#  CI_lm, CI_glmnet, CI_ridge, CI_glmboost, CI_rf, CI_causal_forest,
-#  CI_bartcause, CI_rlearner_lasso,
-#  hvalue_lm, hvalue_glmnet, hvalue_ridge, hvalue_glmboost, hvalue_rf, hvalue_causal_forest,
-#  hvalue_bartcause, hvalue_rlearner_lasso,
-#  true_thetas,
-#  beta_main, beta_interaction, beta_trt, beta0,
-#  file = "Sim1A_Extended_40.RData"
-#)
-
+save(
+  cover_lm, cover_glmnet, cover_ridge, cover_glmboost, cover_rf, cover_causal_forest,
+  CI_lm, CI_glmnet, CI_ridge, CI_glmboost, CI_rf, CI_causal_forest,
+  hvalue_lm, hvalue_glmnet, hvalue_ridge, hvalue_glmboost, hvalue_rf, hvalue_causal_forest,
+  true_thetas,
+  beta_main, beta_interaction, beta_trt, beta0,
+  file = "Sim1A_HD_500_B.RData"
+)
