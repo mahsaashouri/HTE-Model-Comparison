@@ -63,10 +63,10 @@ rf_funs <- list(fitter = fitter_rf,
 # Set the number of folds, and
 # number of nested cv replications:
 n_folds <- 5
-nested_cv_reps <- 500 ## Use 50 or 100 for paper
+nested_cv_reps <- 10 ## Use 50 or 100 for paper
 
 ## Set the number of simulation replications
-nreps <- 50  ## Use nreps = 500 for paper
+nreps <- 500  ## Use nreps = 500 for paper
 cover_lm <- cover_glmnet <- cover_glmboost <- cover_rf <- rep(NA, nreps)
 hvalue_lm <- hvalue_glmnet <- hvalue_glmboost <- hvalue_rf <- rep(NA, nreps)
 CI_lm <- CI_glmnet <- CI_glmboost <- CI_rf <- matrix(NA, nrow=nreps, ncol=2)
@@ -172,12 +172,12 @@ for(h in 1:nreps) {
 
 data_hvalues <- data.frame(
   value = c(hvalue_lm, hvalue_glmnet, hvalue_glmboost),
-  group = factor(rep(c("linear", "Lasso", "boosting"), each = 50), levels = c("linear", "Lasso", "boosting"))
+  group = factor(rep(c("linear", "Lasso", "boosting"), each = 500), levels = c("linear", "Lasso", "boosting"))
 )
 
 # Plot the overlapping histograms
 ggplot(data_hvalues, aes(x = value, fill = group)) +
-  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray', binwidth = 0.03) +
+  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray', binwidth = 0.05) +
   labs(x = "h-value", y = "Frequency") +
   #scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4", "darkgoldenrod"), name = "Methods") +
   scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4"), name = "Methods") +
