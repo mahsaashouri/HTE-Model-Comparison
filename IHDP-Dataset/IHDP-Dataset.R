@@ -194,3 +194,23 @@ ggplot(data_hvalues, aes(x = value, fill = group)) +
     legend.position = "bottom" 
   )
 
+## another version
+ggplot(data_hvalues, aes(x = value, fill = group)) +
+  geom_histogram(position = "identity", alpha = 0.7, color = 'darkgray', binwidth = 0.05) +
+  labs(x = "h-value", y = "Frequency") +
+  scale_fill_manual(values = c("lightblue", "lightpink3", "darkolivegreen4"), name = "Methods") +
+  coord_cartesian(xlim = c(0, 1)) +
+  facet_grid(group ~ ., scales = "free_y") +
+  theme_minimal() +
+  theme(
+    text          = element_text(size = 20),
+    axis.title    = element_text(size = 22),
+    axis.text     = element_text(size = 20),
+    plot.title    = element_text(size = 16, face = "bold"),
+    legend.title  = element_text(size = 24),
+    legend.text   = element_text(size = 20),
+    legend.position = "bottom",
+    strip.text    = element_text(size = 18, face = "bold"),
+    panel.spacing = unit(1, "lines")
+  )
+
