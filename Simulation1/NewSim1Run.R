@@ -118,6 +118,15 @@ for(h in 1:nreps) {
   
   Y <- beta0 + beta1*x1 + beta2*x2 + beta3*A + beta4*A*x1 + beta5*A*x2 + epsilon
   
+  
+  # Generate residuals and outcomes - dependent error structure for potential outcomes
+  #rhho <- 0.5
+  #epsilon0 <- rnorm(n, mean = 0, sd = 1)
+  #epsilon1 <- rhho*epsilon0 + rnorm(n, mean=0, sd=sqrt(1 - rhho^2)) 
+  
+  #Y0 <- beta0 + beta1*x1 + beta2*x2 + epsilon0
+  #Y1 <- beta0 + beta1*x1 + beta2*x2 + beta3 + beta4*x1 + beta5*x2 + epsilon1
+  #Y <- A*Y1 + (1 - A)*Y0
   ######################
   ## Compute true value of \theta_{XY} for each method
   ######################
